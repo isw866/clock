@@ -3,154 +3,183 @@
 <head>
 <meta charset="UTF-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no" />
-<title>儿童互动钟表</title>
+<title>儿童钟表学习</title>
 
 <style>
-  body {
-    margin: 0;
-    background: #f5f7fa;
-    font-family: -apple-system, BlinkMacSystemFont, sans-serif;
-    text-align: center;
-  }
-  h2 {
-    margin: 12px 0;
-  }
-  .clock {
-    width: 280px;
-    height: 280px;
-    border: 8px solid #333;
-    border-radius: 50%;
-    margin: 10px auto;
-    position: relative;
-    background: #fff;
-    touch-action: none;
-  }
-  .hand {
-    position: absolute;
-    left: 50%;
-    bottom: 50%;
-    transform-origin: bottom center;
-  }
-  .hour {
-    width: 8px;
-    height: 70px;
-    background: #ff6b6b;
-    border-radius: 4px;
-  }
-  .minute {
-    width: 6px;
-    height: 110px;
-    background: #4dabf7;
-    border-radius: 3px;
-  }
-  .center {
-    width: 14px;
-    height: 14px;
-    background: #333;
-    border-radius: 50%;
-    position: absolute;
-    left: 50%;
-    top: 50%;
-    transform: translate(-50%, -50%);
-  }
-  .info {
-    font-size: 22px;
-    font-weight: bold;
-    margin: 8px;
-  }
-  button {
-    font-size: 16px;
-    padding: 8px 12px;
-    margin: 6px;
-    border-radius: 8px;
-    border: none;
-    background: #4dabf7;
-    color: #fff;
-  }
-  button.secondary {
-    background: #6c757d;
-  }
+body {
+  margin: 0;
+  background: #f5f7fa;
+  font-family: -apple-system, BlinkMacSystemFont, sans-serif;
+  text-align: center;
+}
+h2 {
+  margin: 10px 0 4px;
+}
+.tip {
+  font-size: 16px;
+  color: #555;
+}
+.clock {
+  width: 300px;
+  height: 300px;
+  border: 8px solid #333;
+  border-radius: 50%;
+  margin: 10px auto;
+  position: relative;
+  background: #fff;
+  touch-action: none;
+}
+.number {
+  position: absolute;
+  font-size: 18px;
+  font-weight: bold;
+}
+.hand {
+  position: absolute;
+  left: 50%;
+  bottom: 50%;
+  transform-origin: bottom center;
+}
+.hour {
+  width: 8px;
+  height: 75px;
+  background: #ff6b6b;
+  border-radius: 4px;
+}
+.minute {
+  width: 6px;
+  height: 120px;
+  background: #4dabf7;
+  border-radius: 3px;
+}
+.center {
+  width: 14px;
+  height: 14px;
+  background: #333;
+  border-radius: 50%;
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  transform: translate(-50%, -50%);
+}
+button {
+  font-size: 15px;
+  padding: 8px 14px;
+  margin: 6px;
+  border-radius: 8px;
+  border: none;
+  background: #4dabf7;
+  color: #fff;
+}
+button.secondary {
+  background: #6c757d;
+}
 </style>
 </head>
 
 <body>
 
-<h2>认识钟表</h2>
+<h2 id="levelTitle">第 1 关：认识整点</h2>
+<div class="tip" id="levelTip">听语音，把钟表拨对</div>
 
 <div class="clock" id="clock">
+  <!-- 数字 -->
+  <script>
+    for (let i = 1; i <= 12; i++) {
+      document.write(`<div class="number" id="n${i}">${i}</div>`);
+    }
+  </script>
+
   <div class="hand hour" id="hourHand"></div>
   <div class="hand minute" id="minuteHand"></div>
   <div class="center"></div>
 </div>
 
-<div class="info" id="timeText">3 点整</div>
-
 <div>
-  <button onclick="speakTime()">语音播报</button>
-  <button onclick="startAuto()">自动播放</button>
-  <button class="secondary" onclick="startQuiz()">整点 / 半点练习</button>
+  <button onclick="speakTarget()">听一听</button>
+  <button class="secondary" onclick="nextLevel()">下一关</button>
 </div>
 
 <script>
-/* ===== 状态 ===== */
-let hour = 3;
+/* ===== 教学状态 ===== */
+let level = 1;
+let targetHour = 3;
+let targetMinute = 0;
+
+let hour = 12;
 let minute = 0;
-let autoTimer = null;
 let dragging = null;
 
 /* ===== DOM ===== */
 const clock = document.getElementById('clock');
 const hourHand = document.getElementById('hourHand');
 const minuteHand = document.getElementById('minuteHand');
-const timeText = document.getElementById('timeText');
+const levelTitle = document.getElementById('levelTitle');
+const levelTip = document.getElementById('levelTip');
+
+/* ===== 数字布局 ===== */
+function layoutNumbers() {
+  const r = 130;
+  for (let i = 1; i <= 12; i++) {
+    const angle = (i - 3) * 30 * Math.PI / 180;
+    const x = 150 + r * Math.cos(angle);
+    const y = 150 + r * Math.sin(angle);
+    const el = document.getElementById('n' + i);
+    el.style.left = x - 8 + 'px';
+    el.style.top = y - 10 + 'px';
+  }
+}
 
 /* ===== 渲染 ===== */
 function render() {
-  const hourDeg = (hour % 12) * 30 + minute * 0.5;
-  const minuteDeg = minute * 6;
-  hourHand.style.transform = `translateX(-50%) rotate(${hourDeg}deg)`;
-  minuteHand.style.transform = `translateX(-50%) rotate(${minuteDeg}deg)`;
-  timeText.innerText = minute === 0 ? `${hour} 点整` : `${hour} 点半`;
+  const hDeg = (hour % 12) * 30 + minute * 0.5;
+  const mDeg = minute * 6;
+  hourHand.style.transform = `translateX(-50%) rotate(${hDeg}deg)`;
+  minuteHand.style.transform = `translateX(-50%) rotate(${mDeg}deg)`;
+}
+
+/* ===== 出题 ===== */
+function newQuestion() {
+  targetHour = Math.floor(Math.random() * 12) + 1;
+  if (level === 1) {
+    targetMinute = 0;
+    levelTitle.innerText = '第 1 关：认识整点';
+    levelTip.innerText = '听语音，把钟表拨对';
+  } else {
+    targetMinute = Math.random() > 0.5 ? 30 : 0;
+    levelTitle.innerText = '第 2 关：整点和半点';
+    levelTip.innerText = '听语音，自己拨钟表';
+  }
 }
 
 /* ===== 语音 ===== */
-function speakTime() {
-  const utter = new SpeechSynthesisUtterance(timeText.innerText);
+function speakTarget() {
+  const text = `请把钟表拨到 ${targetHour} 点${targetMinute === 30 ? '半' : ''}`;
+  const utter = new SpeechSynthesisUtterance(text);
   utter.lang = 'zh-CN';
   speechSynthesis.cancel();
   speechSynthesis.speak(utter);
 }
 
-/* ===== 自动播放 ===== */
-function startAuto() {
-  clearInterval(autoTimer);
-  autoTimer = setInterval(() => {
-    minute = minute === 0 ? 30 : 0;
-    if (minute === 0) hour = hour % 12 + 1;
-    render();
-    speakTime();
-  }, 2500);
-}
-
-/* ===== 练习 ===== */
-function startQuiz() {
-  clearInterval(autoTimer);
-  hour = Math.floor(Math.random() * 12) + 1;
-  minute = Math.random() > 0.5 ? 30 : 0;
-  render();
-  setTimeout(speakTime, 500);
+/* ===== 判断 ===== */
+function checkAnswer() {
+  if (hour === targetHour && minute === targetMinute) {
+    const ok = new SpeechSynthesisUtterance('真棒，拨对了');
+    ok.lang = 'zh-CN';
+    speechSynthesis.speak(ok);
+    setTimeout(() => newQuestion(), 1200);
+  }
 }
 
 /* ===== 拖动 ===== */
 function getAngle(x, y) {
-  const rect = clock.getBoundingClientRect();
-  const cx = rect.left + rect.width / 2;
-  const cy = rect.top + rect.height / 2;
+  const r = clock.getBoundingClientRect();
+  const cx = r.left + r.width / 2;
+  const cy = r.top + r.height / 2;
   return Math.atan2(y - cy, x - cx) * 180 / Math.PI + 90;
 }
 
 clock.addEventListener('pointerdown', e => {
-  clearInterval(autoTimer);
   const angle = getAngle(e.clientX, e.clientY);
   dragging = Math.abs(angle - minute * 6) < 20 ? 'minute' : 'hour';
 });
@@ -167,11 +196,21 @@ clock.addEventListener('pointermove', e => {
   render();
 });
 
-clock.addEventListener('pointerup', () => dragging = null);
+clock.addEventListener('pointerup', () => {
+  dragging = null;
+  checkAnswer();
+});
 clock.addEventListener('pointerleave', () => dragging = null);
 
 /* ===== 初始化 ===== */
+layoutNumbers();
+newQuestion();
 render();
+
+function nextLevel() {
+  level = level === 1 ? 2 : 1;
+  newQuestion();
+}
 </script>
 
 </body>
