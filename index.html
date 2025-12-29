@@ -1,0 +1,178 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no" />
+<title>儿童互动钟表</title>
+
+<style>
+  body {
+    margin: 0;
+    background: #f5f7fa;
+    font-family: -apple-system, BlinkMacSystemFont, sans-serif;
+    text-align: center;
+  }
+  h2 {
+    margin: 12px 0;
+  }
+  .clock {
+    width: 280px;
+    height: 280px;
+    border: 8px solid #333;
+    border-radius: 50%;
+    margin: 10px auto;
+    position: relative;
+    background: #fff;
+    touch-action: none;
+  }
+  .hand {
+    position: absolute;
+    left: 50%;
+    bottom: 50%;
+    transform-origin: bottom center;
+  }
+  .hour {
+    width: 8px;
+    height: 70px;
+    background: #ff6b6b;
+    border-radius: 4px;
+  }
+  .minute {
+    width: 6px;
+    height: 110px;
+    background: #4dabf7;
+    border-radius: 3px;
+  }
+  .center {
+    width: 14px;
+    height: 14px;
+    background: #333;
+    border-radius: 50%;
+    position: absolute;
+    left: 50%;
+    top: 50%;
+    transform: translate(-50%, -50%);
+  }
+  .info {
+    font-size: 22px;
+    font-weight: bold;
+    margin: 8px;
+  }
+  button {
+    font-size: 16px;
+    padding: 8px 12px;
+    margin: 6px;
+    border-radius: 8px;
+    border: none;
+    background: #4dabf7;
+    color: #fff;
+  }
+  button.secondary {
+    background: #6c757d;
+  }
+</style>
+</head>
+
+<body>
+
+<h2>认识钟表</h2>
+
+<div class="clock" id="clock">
+  <div class="hand hour" id="hourHand"></div>
+  <div class="hand minute" id="minuteHand"></div>
+  <div class="center"></div>
+</div>
+
+<div class="info" id="timeText">3 点整</div>
+
+<div>
+  <button onclick="speakTime()">语音播报</button>
+  <button onclick="startAuto()">自动播放</button>
+  <button class="secondary" onclick="startQuiz()">整点 / 半点练习</button>
+</div>
+
+<script>
+/* ===== 状态 ===== */
+let hour = 3;
+let minute = 0;
+let autoTimer = null;
+let dragging = null;
+
+/* ===== DOM ===== */
+const clock = document.getElementById('clock');
+const hourHand = document.getElementById('hourHand');
+const minuteHand = document.getElementById('minuteHand');
+const timeText = document.getElementById('timeText');
+
+/* ===== 渲染 ===== */
+function render() {
+  const hourDeg = (hour % 12) * 30 + minute * 0.5;
+  const minuteDeg = minute * 6;
+  hourHand.style.transform = `translateX(-50%) rotate(${hourDeg}deg)`;
+  minuteHand.style.transform = `translateX(-50%) rotate(${minuteDeg}deg)`;
+  timeText.innerText = minute === 0 ? `${hour} 点整` : `${hour} 点半`;
+}
+
+/* ===== 语音 ===== */
+function speakTime() {
+  const utter = new SpeechSynthesisUtterance(timeText.innerText);
+  utter.lang = 'zh-CN';
+  speechSynthesis.cancel();
+  speechSynthesis.speak(utter);
+}
+
+/* ===== 自动播放 ===== */
+function startAuto() {
+  clearInterval(autoTimer);
+  autoTimer = setInterval(() => {
+    minute = minute === 0 ? 30 : 0;
+    if (minute === 0) hour = hour % 12 + 1;
+    render();
+    speakTime();
+  }, 2500);
+}
+
+/* ===== 练习 ===== */
+function startQuiz() {
+  clearInterval(autoTimer);
+  hour = Math.floor(Math.random() * 12) + 1;
+  minute = Math.random() > 0.5 ? 30 : 0;
+  render();
+  setTimeout(speakTime, 500);
+}
+
+/* ===== 拖动 ===== */
+function getAngle(x, y) {
+  const rect = clock.getBoundingClientRect();
+  const cx = rect.left + rect.width / 2;
+  const cy = rect.top + rect.height / 2;
+  return Math.atan2(y - cy, x - cx) * 180 / Math.PI + 90;
+}
+
+clock.addEventListener('pointerdown', e => {
+  clearInterval(autoTimer);
+  const angle = getAngle(e.clientX, e.clientY);
+  dragging = Math.abs(angle - minute * 6) < 20 ? 'minute' : 'hour';
+});
+
+clock.addEventListener('pointermove', e => {
+  if (!dragging) return;
+  const angle = getAngle(e.clientX, e.clientY);
+  if (dragging === 'minute') {
+    minute = angle > 180 ? 30 : 0;
+  } else {
+    hour = Math.round(angle / 30);
+    if (hour <= 0) hour += 12;
+  }
+  render();
+});
+
+clock.addEventListener('pointerup', () => dragging = null);
+clock.addEventListener('pointerleave', () => dragging = null);
+
+/* ===== 初始化 ===== */
+render();
+</script>
+
+</body>
+</html>
