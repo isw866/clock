@@ -13,18 +13,22 @@ body {
   text-align: center;
 }
 h2 {
-  margin: 10px 0 4px;
+  margin: 8px 0 2px;
 }
 .tip {
-  font-size: 16px;
+  font-size: 15px;
   color: #555;
+}
+.star {
+  font-size: 18px;
+  margin: 4px;
 }
 .clock {
   width: 300px;
   height: 300px;
   border: 8px solid #333;
   border-radius: 50%;
-  margin: 10px auto;
+  margin: 8px auto;
   position: relative;
   background: #fff;
   touch-action: none;
@@ -40,18 +44,8 @@ h2 {
   bottom: 50%;
   transform-origin: bottom center;
 }
-.hour {
-  width: 8px;
-  height: 75px;
-  background: #ff6b6b;
-  border-radius: 4px;
-}
-.minute {
-  width: 6px;
-  height: 120px;
-  background: #4dabf7;
-  border-radius: 3px;
-}
+.hour { width: 8px; height: 75px; background: #ff6b6b; border-radius: 4px; }
+.minute { width: 6px; height: 120px; background: #4dabf7; border-radius: 3px; }
 .center {
   width: 14px;
   height: 14px;
@@ -71,25 +65,22 @@ button {
   background: #4dabf7;
   color: #fff;
 }
-button.secondary {
-  background: #6c757d;
-}
+button.secondary { background: #6c757d; }
 </style>
 </head>
 
 <body>
 
-<h2 id="levelTitle">第 1 关：认识整点</h2>
-<div class="tip" id="levelTip">听语音，把钟表拨对</div>
+<h2 id="levelTitle"></h2>
+<div class="tip" id="levelTip"></div>
+<div class="star" id="starText">⭐ 0</div>
 
 <div class="clock" id="clock">
-  <!-- 数字 -->
   <script>
     for (let i = 1; i <= 12; i++) {
       document.write(`<div class="number" id="n${i}">${i}</div>`);
     }
   </script>
-
   <div class="hand hour" id="hourHand"></div>
   <div class="hand minute" id="minuteHand"></div>
   <div class="center"></div>
@@ -101,14 +92,15 @@ button.secondary {
 </div>
 
 <script>
-/* ===== 教学状态 ===== */
+/* ===== 状态 ===== */
 let level = 1;
 let targetHour = 3;
 let targetMinute = 0;
-
 let hour = 12;
 let minute = 0;
 let dragging = null;
+let stars = 0;
+let solved = 0;
 
 /* ===== DOM ===== */
 const clock = document.getElementById('clock');
@@ -116,101 +108,96 @@ const hourHand = document.getElementById('hourHand');
 const minuteHand = document.getElementById('minuteHand');
 const levelTitle = document.getElementById('levelTitle');
 const levelTip = document.getElementById('levelTip');
+const starText = document.getElementById('starText');
 
-/* ===== 数字布局 ===== */
+/* ===== 布局 ===== */
 function layoutNumbers() {
   const r = 130;
   for (let i = 1; i <= 12; i++) {
-    const angle = (i - 3) * 30 * Math.PI / 180;
-    const x = 150 + r * Math.cos(angle);
-    const y = 150 + r * Math.sin(angle);
-    const el = document.getElementById('n' + i);
-    el.style.left = x - 8 + 'px';
-    el.style.top = y - 10 + 'px';
+    const a = (i - 3) * 30 * Math.PI / 180;
+    document.getElementById('n'+i).style.cssText =
+      `left:${150+r*Math.cos(a)-8}px;top:${150+r*Math.sin(a)-10}px`;
   }
 }
 
 /* ===== 渲染 ===== */
 function render() {
-  const hDeg = (hour % 12) * 30 + minute * 0.5;
-  const mDeg = minute * 6;
-  hourHand.style.transform = `translateX(-50%) rotate(${hDeg}deg)`;
-  minuteHand.style.transform = `translateX(-50%) rotate(${mDeg}deg)`;
+  hourHand.style.transform = `translateX(-50%) rotate(${(hour%12)*30+minute*0.5}deg)`;
+  minuteHand.style.transform = `translateX(-50%) rotate(${minute*6}deg)`;
 }
 
 /* ===== 出题 ===== */
 function newQuestion() {
-  targetHour = Math.floor(Math.random() * 12) + 1;
+  targetHour = Math.floor(Math.random()*12)+1;
+  if (level === 1) targetMinute = 0;
+  else targetMinute = Math.random()>0.5?30:0;
+
   if (level === 1) {
-    targetMinute = 0;
-    levelTitle.innerText = '第 1 关：认识整点';
+    levelTitle.innerText = '第 1 关：整点';
     levelTip.innerText = '听语音，把钟表拨对';
-  } else {
-    targetMinute = Math.random() > 0.5 ? 30 : 0;
+  } else if (level === 2) {
     levelTitle.innerText = '第 2 关：整点和半点';
-    levelTip.innerText = '听语音，自己拨钟表';
+    levelTip.innerText = '注意长针的位置';
+  } else if (level === 3) {
+    levelTitle.innerText = '第 3 关：听一听';
+    levelTip.innerText = '';
+  } else {
+    levelTitle.innerText = '第 4 关：挑战关';
+    levelTip.innerText = '只靠记忆和理解';
   }
 }
 
 /* ===== 语音 ===== */
 function speakTarget() {
-  const text = `请把钟表拨到 ${targetHour} 点${targetMinute === 30 ? '半' : ''}`;
-  const utter = new SpeechSynthesisUtterance(text);
-  utter.lang = 'zh-CN';
+  const u = new SpeechSynthesisUtterance(
+    `请把钟表拨到 ${targetHour} 点${targetMinute===30?'半':''}`
+  );
+  u.lang = 'zh-CN';
   speechSynthesis.cancel();
-  speechSynthesis.speak(utter);
+  speechSynthesis.speak(u);
 }
 
 /* ===== 判断 ===== */
-function checkAnswer() {
-  if (hour === targetHour && minute === targetMinute) {
-    const ok = new SpeechSynthesisUtterance('真棒，拨对了');
-    ok.lang = 'zh-CN';
-    speechSynthesis.speak(ok);
-    setTimeout(() => newQuestion(), 1200);
+function check() {
+  if (hour===targetHour && minute===targetMinute) {
+    stars++; solved++;
+    starText.innerText = '⭐ ' + stars;
+    speechSynthesis.speak(new SpeechSynthesisUtterance('真棒'));
+    if (solved>=5) {
+      speechSynthesis.speak(new SpeechSynthesisUtterance('这一关完成了'));
+      solved = 0;
+    }
+    setTimeout(newQuestion, 1200);
   }
 }
 
 /* ===== 拖动 ===== */
-function getAngle(x, y) {
-  const r = clock.getBoundingClientRect();
-  const cx = r.left + r.width / 2;
-  const cy = r.top + r.height / 2;
-  return Math.atan2(y - cy, x - cx) * 180 / Math.PI + 90;
+function angle(x,y){
+  const r=clock.getBoundingClientRect();
+  return Math.atan2(y-(r.top+r.height/2),x-(r.left+r.width/2))*180/Math.PI+90;
 }
-
-clock.addEventListener('pointerdown', e => {
-  const angle = getAngle(e.clientX, e.clientY);
-  dragging = Math.abs(angle - minute * 6) < 20 ? 'minute' : 'hour';
+clock.addEventListener('pointerdown',e=>{
+  dragging=Math.abs(angle(e.clientX,e.clientY)-minute*6)<20?'minute':'hour';
 });
-
-clock.addEventListener('pointermove', e => {
-  if (!dragging) return;
-  const angle = getAngle(e.clientX, e.clientY);
-  if (dragging === 'minute') {
-    minute = angle > 180 ? 30 : 0;
-  } else {
-    hour = Math.round(angle / 30);
-    if (hour <= 0) hour += 12;
-  }
+clock.addEventListener('pointermove',e=>{
+  if(!dragging)return;
+  const a=angle(e.clientX,e.clientY);
+  if(dragging==='minute') minute=a>180?30:0;
+  else { hour=Math.round(a/30); if(hour<=0)hour+=12; }
   render();
 });
+clock.addEventListener('pointerup',()=>{ dragging=null; check(); });
 
-clock.addEventListener('pointerup', () => {
-  dragging = null;
-  checkAnswer();
-});
-clock.addEventListener('pointerleave', () => dragging = null);
+function nextLevel() {
+  level = level === 4 ? 1 : level + 1;
+  solved = 0;
+  newQuestion();
+}
 
 /* ===== 初始化 ===== */
 layoutNumbers();
 newQuestion();
 render();
-
-function nextLevel() {
-  level = level === 1 ? 2 : 1;
-  newQuestion();
-}
 </script>
 
 </body>
