@@ -1,0 +1,784 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>专业核心岗位匹配系统</title>
+    <script src="https://unpkg.com/vue@3/dist/vue.global.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/echarts@5.4.3/dist/echarts.min.js"></script>
+    <style>
+        :root {
+            --primary-blue: #2563eb;
+            --primary-light: #eff6ff;
+            --primary-gradient: linear-gradient(135deg, #1e40af 0%, #3b82f6 100%);
+            --accent-cyan: #06b6d4;
+            --status-green: #10b981;
+            --status-orange: #f59e0b;
+            --status-red: #ef4444;
+            --status-bg-green: #d1fae5;
+            --bg-body: #f8fafc;
+            --card-bg: #ffffff;
+            --text-main: #0f172a;
+            --text-sub: #64748b;
+            --border-light: #e2e8f0;
+            --card-radius: 16px;
+            --shadow-blue: 0 4px 20px -2px rgba(37, 99, 235, 0.1);
+        }
+
+        body {
+            margin: 0;
+            background: var(--bg-body);
+            color: var(--text-main);
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+            -webkit-tap-highlight-color: transparent;
+            padding-bottom: 80px;
+        }
+
+        .hide-scrollbar::-webkit-scrollbar { display: none; }
+
+        /* --- 首页样式 --- */
+        .home-header { padding: 32px 20px 50px; background: var(--primary-gradient); color: #fff; border-bottom-left-radius: 24px; border-bottom-right-radius: 24px; box-shadow: 0 4px 12px rgba(30, 64, 175, 0.2); position: relative; z-index: 1; }
+        .home-title { font-size: 24px; font-weight: 800; letter-spacing: 0.5px; }
+        .home-subtitle { font-size: 13px; opacity: 0.8; margin-top: 6px; font-weight: 400; }
+        .list-container { padding: 0 16px 20px; margin-top: -30px; position: relative; z-index: 2; }
+        .job-card { background: var(--card-bg); border-radius: var(--card-radius); padding: 20px; margin-bottom: 16px; box-shadow: var(--shadow-blue); border: 1px solid rgba(255,255,255,0.6); transition: transform 0.2s; position: relative; overflow: hidden; }
+        .job-card:active { transform: scale(0.98); }
+        .job-card-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px; }
+        .job-name { font-size: 18px; font-weight: 700; color: #1e293b; }
+        .job-tag { font-size: 11px; color: var(--primary-blue); background: var(--primary-light); padding: 4px 10px; border-radius: 20px; font-weight: 600; }
+        .job-desc-preview { font-size: 13px; color: var(--text-sub); line-height: 1.6; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; margin-bottom: 16px; }
+        .job-card-footer { font-size: 12px; color: #94a3b8; border-top: 1px solid #f1f5f9; padding-top: 12px; display: flex; justify-content: space-between; align-items: center; }
+        .link-text { color: var(--primary-blue); font-weight: 600; display: flex; align-items: center; }
+
+        /* --- 详情页样式 --- */
+        .detail-action-bar { position: fixed; bottom: 0; left: 0; right: 0; height: 80px; background: #fff; display: flex; align-items: center; padding: 0 16px; box-shadow: 0 -4px 12px rgba(0,0,0,0.05); z-index: 99; border-top: 1px solid var(--border-light); padding-bottom: env(safe-area-inset-bottom); }
+        .fav-btn { width: 48px; height: 48px; border-radius: 12px; background: #f1f5f9; display: flex; align-items: center; justify-content: center; margin-right: 12px; transition: all 0.2s cubic-bezier(0.175, 0.885, 0.32, 1.275); }
+        .fav-btn.active { background: #fee2e2; transform: scale(1.05); }
+        .fav-btn.active svg { fill: #ef4444; stroke: #ef4444; }
+        .submit-btn { flex: 1; height: 48px; border-radius: 12px; background: var(--primary-gradient); color: #fff; font-weight: 700; font-size: 16px; display: flex; align-items: center; justify-content: center; box-shadow: 0 4px 12px rgba(37, 99, 235, 0.2); }
+        .submit-btn:active { opacity: 0.9; transform: scale(0.99); }
+
+        /* --- 导航栏 --- */
+        .tab-bar { position: fixed; bottom: 0; left: 0; right: 0; height: 64px; background: rgba(255, 255, 255, 0.95); backdrop-filter: blur(10px); display: flex; align-items: center; justify-content: space-around; border-top: 1px solid var(--border-light); box-shadow: 0 -4px 12px rgba(0,0,0,0.05); z-index: 1000; }
+        .tab-item { flex: 1; display: flex; flex-direction: column; align-items: center; justify-content: center; color: var(--text-sub); font-size: 12px; font-weight: 600; cursor: pointer; }
+        .tab-item.active { color: var(--primary-blue); }
+        .tab-icon { width: 24px; height: 24px; margin-bottom: 4px; fill: currentColor; }
+
+        /* --- 详情页内容 --- */
+        .nav-bar { position: sticky; top: 0; z-index: 100; background: var(--primary-gradient); height: 56px; display: flex; align-items: center; justify-content: center; padding: 0 16px; color: #fff; }
+        .nav-left-area { position: absolute; left: 8px; height: 100%; display: flex; align-items: center; padding: 0 12px; }
+        .nav-right-area { position: absolute; right: 8px; height: 100%; display: flex; align-items: center; padding: 0 12px; font-size: 13px; font-weight: 600; opacity: 0.9; cursor: pointer; }
+        .back-icon-svg { width: 24px; height: 24px; fill: #fff; }
+        .nav-title { font-size: 17px; font-weight: 600; }
+        .detail-content { padding: 20px 16px 140px; }
+
+        /* 基础组件 */
+        .header-info-card { background: var(--card-bg); border-radius: var(--card-radius); padding: 24px 20px; margin-bottom: 20px; position: relative; box-shadow: var(--shadow-blue); }
+        .status-badge { position: absolute; top: 0; right: 0; background: var(--status-bg-green); color: var(--status-green); font-size: 11px; font-weight: 700; padding: 6px 14px; border-bottom-left-radius: 16px; border-top-right-radius: 16px; }
+        .rank-card { background: var(--card-bg); border-radius: var(--card-radius); padding: 24px 16px; margin-bottom: 20px; box-shadow: var(--shadow-blue); }
+        .rank-stats { display: flex; justify-content: space-around; text-align: center; }
+        .stat-item { flex: 1; position: relative; display: flex; flex-direction: column; align-items: center; }
+        .stat-item:not(:last-child)::after { content: ""; position: absolute; right: 0; top: 15%; height: 70%; width: 1px; background: #e2e8f0; }
+        .stat-circle-wrapper { width: 52px; height: 52px; margin-bottom: 8px; display: flex; justify-content: center; align-items: center; }
+        .stat-circle { width: 36px; height: 36px; border-radius: 8px; border: 3px solid #eef2ff; transform: rotate(-45deg); display: flex; align-items: center; justify-content: center; background: #fff; }
+        .stat-circle span { transform: rotate(45deg); font-size: 12px; font-weight: 800; }
+        .stat-value { font-size: 20px; font-weight: 800; color: var(--primary-blue); margin-bottom: 2px; }
+        .stat-label { font-size: 11px; color: var(--text-sub); }
+        .section-header { font-size: 17px; font-weight: 800; margin: 28px 4px 14px; display: flex; align-items: center; }
+        .section-header::before { content: ""; width: 4px; height: 16px; background: var(--primary-blue); border-radius: 4px; margin-right: 10px; }
+        .desc-card { background: #fff; border-radius: var(--card-radius); padding: 20px; line-height: 1.7; font-size: 14px; color: #475569; box-shadow: var(--shadow-blue); }
+        .filter-box { background: #fff; border-radius: 12px; padding: 14px; margin-bottom: 14px; display: flex; align-items: center; justify-content: space-between; border: 1px solid var(--border-light); }
+        .custom-select { border: none; background: #f8fafc; padding: 8px 16px; border-radius: 8px; font-size: 13px; color: var(--primary-blue); font-weight: 700; outline: none; appearance: none; background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 12 12'%3E%3Cpath fill='%232563eb' d='M6 8.825L1.175 4L2.238 2.938L6 6.713L9.763 2.938L10.825 4L6 8.825Z'/%3E%3C/svg%3E"); background-repeat: no-repeat; background-position: right 8px center; padding-right: 24px; }
+
+        .matrix-wrapper { background: #fff; border-radius: var(--card-radius); overflow: hidden; border: 1px solid var(--border-light); box-shadow: var(--shadow-blue); margin-bottom: 16px;}
+        .scroll-container { overflow-x: auto; }
+        table { border-collapse: separate; border-spacing: 0; width: 100%; }
+        th, td { padding: 14px 12px; text-align: center; border-bottom: 1px solid #f1f5f9; font-size: 13px; white-space: nowrap; }
+        .sticky-col { position: sticky; left: 0; background: #fff; z-index: 2; text-align: left; min-width: 120px; font-weight: 600; border-right: 1px solid #f1f5f9; }
+        thead th { background: #f8fafc; color: #64748b; font-size: 12px; border-bottom: 2px solid #e2e8f0; }
+        .dot-check { color: var(--primary-blue); font-weight: 900; font-size: 16px; display: inline-block; width: 20px; height: 20px; line-height: 20px; background: rgba(37, 99, 235, 0.1); border-radius: 50%; }
+
+        .chart-card { background: #fff; border-radius: var(--card-radius); padding: 20px; box-shadow: var(--shadow-blue); border: 1px solid var(--border-light); margin-top: 16px;}
+        .chart-container { width: 100%; height: 500px; }
+        .chart-tip { font-size: 12px; color: var(--text-sub); text-align: center; margin-top: 8px; }
+
+        /* --- 我的岗位页面专属样式 --- */
+        .mine-content { padding: 16px; padding-bottom: 80px; }
+
+        /* 统计面板 */
+        .stats-panel { display: flex; gap: 12px; margin-bottom: 20px; }
+        .stat-box { flex: 1; background: #fff; padding: 16px; border-radius: 12px; box-shadow: var(--shadow-blue); text-align: center; border: 1px solid #fff; position: relative; overflow: hidden; }
+        .stat-box.highlight { background: linear-gradient(135deg, #2563eb 0%, #1d4ed8 100%); color: #fff; }
+        .stat-box.highlight .sb-label { color: rgba(255,255,255,0.8); }
+        .stat-box.highlight .sb-value { color: #fff; }
+        .sb-value { font-size: 24px; font-weight: 800; color: var(--text-main); margin-bottom: 4px; display: block; }
+        .sb-label { font-size: 12px; color: var(--text-sub); }
+        .sb-sub { font-size: 11px; color: var(--status-green); font-weight: 600; margin-top: 4px; display: block; }
+
+        /* 雷达图卡片 */
+        .radar-card { background: #fff; border-radius: var(--card-radius); padding: 20px; margin-bottom: 20px; box-shadow: var(--shadow-blue); position: relative; border: 1px solid var(--border-light); }
+        .radar-chart { width: 100%; height: 260px; }
+
+        /* 合格印章 */
+        .stamp-seal {
+            position: absolute; top: 10px; right: 10px; width: 80px; height: 80px;
+            border: 3px solid var(--status-green); border-radius: 50%; color: var(--status-green);
+            display: flex; align-items: center; justify-content: center;
+            font-size: 16px; font-weight: 900; transform: rotate(-20deg);
+            opacity: 0; transition: opacity 0.5s, transform 0.5s; pointer-events: none;
+            background: rgba(16, 185, 129, 0.05); z-index: 10;
+        }
+        .stamp-seal.show { opacity: 1; transform: rotate(-20deg) scale(1); }
+        .stamp-inner { border: 1px dashed var(--status-green); width: 68px; height: 68px; border-radius: 50%; display: flex; align-items: center; justify-content: center; }
+
+        /* 成绩列表表格 */
+        .score-table-wrap { background: #fff; border-radius: 12px; overflow: hidden; border: 1px solid var(--border-light); box-shadow: 0 2px 8px rgba(0,0,0,0.03); margin-bottom: 20px; }
+        .score-row { display: flex; justify-content: space-between; padding: 12px 16px; border-bottom: 1px solid #f1f5f9; align-items: center; }
+        .score-row:last-child { border-bottom: none; }
+        .score-name { font-size: 13px; color: var(--text-main); font-weight: 500; flex: 1; }
+        .score-credit { font-size: 12px; color: var(--text-sub); width: 50px; text-align: right; }
+        .score-val { font-size: 13px; font-weight: 700; width: 50px; text-align: right; }
+        .val-pass { color: var(--status-green); }
+        .val-fail { color: var(--status-red); }
+
+    </style>
+</head>
+<body>
+
+<div id="app">
+    <!-- List & Detail Tab -->
+    <div v-show="currentTab === 'list'">
+        <div v-if="page === 'list'">
+            <div class="home-header">
+                <div class="home-title">药品经营与管理 专业核心岗位</div>
+                <div class="home-subtitle">基于图谱引擎的智能岗位匹配系统</div>
+            </div>
+            <div class="list-container">
+                <div v-for="item in jobs" :key="item.name" class="job-card" @click="openDetail(item)">
+                    <div class="job-card-header">
+                        <div class="job-name">{{ item.name }}</div>
+<!--                        <div class="job-tag">{{ item.dept }}</div>-->
+                    </div>
+                    <div class="job-desc-preview">{{ item.fullDesc }}</div>
+                    <div class="job-card-footer">
+                        <div>
+                            <span style="margin-right: 10px; display: inline-flex; align-items: center;">
+                                <span style="width:6px; height:6px; background:#cbd5e1; border-radius:50%; margin-right:4px;"></span>
+                                {{ item.matrix.length }} 项能力
+                            </span>
+                            <span style="margin-right: 10px; display: inline-flex; align-items: center;">
+                                <span style="width:6px; height:6px; background:#cbd5e1; border-radius:50%; margin-right:4px;"></span>
+                                {{ getCourseCount(item) }} 门课程
+                            </span>
+                        </div>
+                        <span class="link-text">匹配详情 &rsaquo;</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div v-else>
+            <div class="nav-bar">
+                <div class="nav-left-area" @click="page = 'list'">
+                    <svg class="back-icon-svg" viewBox="0 0 24 24"><path d="M15.41 7.41L14 6l-6 6 6 6 1.41-1.41L10.83 12z"/></svg>
+                </div>
+                <div class="nav-title">岗位详情</div>
+            </div>
+
+            <div class="detail-content">
+                <div class="header-info-card">
+                    <div class="status-badge">正在报名</div>
+                    <div style="font-size: 22px; font-weight: 800; margin-bottom: 6px; color: #1e293b;">{{ activeJob.name }}</div>
+                    <div style="font-size: 13px; color: var(--text-sub);">
+                        <span style="background: #f1f5f9; padding: 2px 8px; border-radius: 4px;">{{ activeJob.dept }}</span> | 代码：{{ activeJob.code }}
+                    </div>
+                </div>
+
+                <div class="section-header">岗位竞争力</div>
+                <div class="rank-card">
+                    <div class="rank-stats">
+                        <div class="stat-item">
+                            <div class="stat-circle-wrapper">
+                                <div class="stat-circle" :style="{ borderTopColor: getStatusColor(activeJob.stats.myLevel), borderRightColor: getStatusColor(activeJob.stats.myLevel) }">
+                                    <span :style="{ color: getStatusColor(activeJob.stats.myLevel) }">{{ activeJob.stats.myLevel }}</span>
+                                </div>
+                            </div>
+                            <div class="stat-label">我的匹配度</div>
+                        </div>
+                        <div class="stat-item"><div class="stat-value">{{ activeJob.stats.favCount }}</div><div class="stat-label">收藏人数</div></div>
+                        <div class="stat-item"><div class="stat-value green">{{ activeJob.stats.selectCount }}</div><div class="stat-label">已选人数</div></div>
+                    </div>
+                </div>
+
+                <div class="section-header">岗位信息</div>
+                <div class="desc-card">{{ activeJob.fullDesc }}</div>
+
+                <div class="section-header">能力与课程矩阵</div>
+                <div class="filter-box">
+                    <span class="filter-label">选择学期</span>
+                    <select v-model="selectedSemester" class="custom-select" @change="updateChart">
+                        <option v-for="opt in semesterOptions" :key="opt" :value="opt">{{ opt }}</option>
+                    </select>
+                </div>
+
+                <div class="matrix-wrapper">
+                    <div class="scroll-container hide-scrollbar">
+                        <table>
+                            <thead><tr><th class="sticky-col">职业能力要求</th><th v-for="c in currentSemesterCourses">{{ c }}</th></tr></thead>
+                            <tbody>
+                            <tr v-for="row in activeJob.matrix">
+                                <td class="sticky-col">{{ row.name }}</td>
+                                <td v-for="course in currentSemesterCourses">
+                                    <span v-if="row.activeCourses.includes(course)" class="dot-check">✓</span>
+                                </td>
+                            </tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+
+                <div class="section-header">岗位能力图谱</div>
+                <div class="chart-card">
+                    <div id="sankeyChart" class="chart-container"></div>
+                    <div class="chart-tip">💡 提示：图谱内容已根据上方选择的【{{ selectedSemester }}】动态更新</div>
+                </div>
+            </div>
+
+            <div class="detail-action-bar">
+                <div class="fav-btn" :class="{ active: activeJob.isFav }" @click="toggleFavorite">
+                    <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#64748b" stroke-width="2">
+                        <path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"/>
+                    </svg>
+                </div>
+                <div class="submit-btn" @click="goToMyJobs">立即选岗</div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Mine Tab -->
+    <div v-show="currentTab === 'mine'">
+        <div class="nav-bar">
+            <div class="nav-title">我的目标岗位</div>
+            <!-- 重选按钮 -->
+            <div class="nav-right-area" @click="currentTab = 'list'; page = 'list'">
+                <span>↻ 重选</span>
+            </div>
+        </div>
+
+        <div class="mine-content">
+            <!-- 1. 顶部：选定岗位卡片 -->
+            <div class="job-card" style="border: 2px solid var(--primary-blue); background: #f0f7ff;">
+                <div style="position: absolute; right: 0; top: 0; background: var(--primary-blue); color: #fff; padding: 4px 12px; font-size: 11px; font-weight: 700; border-bottom-left-radius: 12px;">当前目标</div>
+                <div class="job-card-header">
+                    <div class="job-name">{{ myJob.name }}</div>
+                    <div class="job-tag">{{ myJob.dept }}</div>
+                </div>
+                <div class="job-desc-preview" style="margin-bottom: 8px;">{{ myJob.fullDesc }}</div>
+            </div>
+
+            <!-- 2. 中部：数据统计仪表盘 -->
+            <div class="section-header">学情总览</div>
+            <div class="stats-panel">
+                <div class="stat-box">
+<!--                    <div class="stat-box highlight">-->
+                    <span class="sb-value">{{ myStats.avgScore }}</span>
+                    <span class="sb-label">加权平均分</span>
+                    <span class="sb-sub">目标: 80+</span>
+                </div>
+                <div class="stat-box">
+                    <span class="sb-value">{{ myStats.earnedCredits }} <span style="font-size:12px;color:#94a3b8">/ {{ myStats.totalCredits }}</span></span>
+                    <span class="sb-label">已修学分</span>
+                    <span class="sb-sub" :style="{color: myStats.progress >= 80 ? '#10b981' : '#f59e0b'}">进度 {{ myStats.progress }}%</span>
+                </div>
+            </div>
+
+            <!-- 3. 雷达图：岗位匹配模型 -->
+            <div class="section-header">能力达成情况</div>
+            <div class="radar-card">
+                <!-- 合格印章 -->
+                <div class="stamp-seal" :class="{ show: isQualified }">
+                    <div class="stamp-inner">合格</div>
+                </div>
+                <div id="radarChart" class="radar-chart"></div>
+                <div style="text-align: center; font-size: 12px; color: #64748b; margin-top: -10px;">
+                    <span style="display:inline-block; width:8px; height:8px; background:#10b981; margin-right:4px;"></span>岗位标准
+                    <span style="display:inline-block; width:8px; height:8px; background:#2563eb; margin-left:12px; margin-right:4px;"></span>我的水平
+                </div>
+            </div>
+
+            <!-- 4. 底部：课程成绩明细 -->
+            <div class="section-header">课程修读详情</div>
+            <div class="score-table-wrap">
+                <div class="score-row" style="background: #f8fafc;">
+                    <span class="score-name" style="color: #64748b; font-size: 12px;">课程名称</span>
+                    <span class="score-credit" style="color: #64748b;">学分</span>
+                    <span class="score-val" style="color: #64748b;">成绩</span>
+                </div>
+                <div v-for="c in myJob.courseList" :key="c.name" class="score-row">
+                    <span class="score-name">{{ c.name }}</span>
+                    <span class="score-credit">{{ c.credit.toFixed(1) }}</span>
+                    <span class="score-val" :class="c.score >= 60 ? 'val-pass' : 'val-fail'">
+                        {{ c.score }}
+                    </span>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Tab Bar -->
+    <div class="tab-bar" v-show="page === 'list' || currentTab === 'mine'">
+        <div class="tab-item" :class="{ active: currentTab === 'list' }" @click="currentTab = 'list'; page = 'list'">
+            <svg class="tab-icon" viewBox="0 0 24 24"><path d="M10,20V14H14V20H19V12H22L12,3L2,12H5V20H10Z"/></svg>
+            <span>识岗选岗</span>
+        </div>
+        <div class="tab-item" :class="{ active: currentTab === 'mine' }" @click="switchToMine">
+            <svg class="tab-icon" viewBox="0 0 24 24"><path d="M12,12C14.21,12 16,10.21 16,8C16,5.79 14.21,4 12,4C9.79,4 8,5.79 8,8C8,10.21 9.79,12 12,12M12,14C9.33,14 4,15.33 4,18V20H20V18C20,15.33 14.67,14 12,14Z"/></svg>
+            <span>目标岗位</span>
+        </div>
+    </div>
+</div>
+
+<script>
+    const { createApp, ref, computed, nextTick, onMounted } = Vue;
+
+    createApp({
+        setup() {
+            const currentTab = ref('list');
+            const page = ref('list');
+            const activeJob = ref(null);
+            const hasSelectedJob = ref(false);
+            const semesterOptions = ["2024-2025学年第一学期", "2024-2025学年第二学期"];
+            const selectedSemester = ref(semesterOptions[0]);
+            let myChart = null;
+            let radarChartInstance = null;
+
+            // 我的岗位相关数据
+            const myJob = ref({});
+            const myStats = ref({ avgScore: 0, totalCredits: 0, earnedCredits: 0, progress: 0 });
+            const isQualified = ref(false);
+
+            const getStatusColor = (level) => {
+                const colors = { "优秀": "#10b981", "良好": "#2563eb", "一般": "#f59e0b", "薄弱": "#94a3b8" };
+                return colors[level] || "#94a3b8";
+            };
+
+            const getRandomNums = () => ({
+                favCount: Math.floor(Math.random() * 500) + 500,
+                selectCount: Math.floor(Math.random() * 2000) + 1000
+            });
+
+            const getCourseCount = (item) => {
+                if (!item) return 0;
+                const allCourses = Object.values(item.semesterData).flat();
+                return [...new Set(allCourses)].length;
+            };
+
+            const toggleFavorite = () => {
+                if (activeJob.value) {
+                    activeJob.value.isFav = !activeJob.value.isFav;
+                    activeJob.value.stats.favCount += activeJob.value.isFav ? 1 : -1;
+                }
+            };
+
+            // 生成用户成绩数据
+            const generateUserScores = (job) => {
+                if (!job) return {};
+                const allCourses = [...new Set(Object.values(job.semesterData).flat())];
+
+                const courseList = allCourses.map(name => {
+                    const credit = Math.random() > 0.5 ? 2.0 : 1.5;
+                    const isPass = Math.random() > 0.15;
+                    const score = isPass
+                        ? Math.floor(Math.random() * (98 - 70) + 70)
+                        : Math.floor(Math.random() * (59 - 40) + 40);
+                    return { name, credit, score };
+                });
+
+                let totalCredits = 0;
+                let earnedCredits = 0;
+                let totalScoreWeighted = 0;
+
+                courseList.forEach(c => {
+                    totalCredits += c.credit;
+                    if (c.score >= 60) {
+                        earnedCredits += c.credit;
+                    }
+                    totalScoreWeighted += c.score * c.credit;
+                });
+
+                const avgScore = totalCredits > 0 ? (totalScoreWeighted / totalCredits).toFixed(1) : 0;
+                const progress = totalCredits > 0 ? ((earnedCredits / totalCredits) * 100).toFixed(0) : 0;
+
+                const qualified = progress >= 80 && avgScore >= 80;
+
+                return {
+                    ...job,
+                    courseList,
+                    stats: { totalCredits, earnedCredits, avgScore, progress },
+                    isQualified: qualified
+                };
+            };
+
+            const goToMyJobs = () => {
+                hasSelectedJob.value = true;
+                myJob.value = generateUserScores(activeJob.value);
+                updateMyStats();
+                switchToMine();
+            };
+
+            const switchToMine = () => {
+                currentTab.value = 'mine';
+                if (!myJob.value.name) {
+                    myJob.value = generateUserScores(jobs[0]);
+                    updateMyStats();
+                }
+                nextTick(() => {
+                    initRadarChart();
+                });
+            };
+
+            const updateMyStats = () => {
+                if(myJob.value && myJob.value.stats) {
+                    myStats.value = myJob.value.stats;
+                    isQualified.value = myJob.value.isQualified;
+                }
+            };
+
+            const initRadarChart = () => {
+                const chartDom = document.getElementById('radarChart');
+                if (!chartDom) return;
+
+                if (radarChartInstance) radarChartInstance.dispose();
+                radarChartInstance = echarts.init(chartDom);
+
+                const baseScore = parseFloat(myStats.value.avgScore) || 75;
+                const randomOffset = () => (Math.random() - 0.5) * 15;
+                const clamp = (num) => Math.min(100, Math.max(40, num));
+
+                const dataValues = [
+                    clamp(baseScore + randomOffset()),
+                    clamp(baseScore + randomOffset()),
+                    clamp(baseScore + randomOffset()),
+                    clamp(baseScore + randomOffset()),
+                    clamp(baseScore + randomOffset())
+                ];
+
+                const option = {
+                    color: ['#2563eb'],
+                    radar: {
+                        indicator: [
+                            { name: '专业知识', max: 100 },
+                            { name: '实务技能', max: 100 },
+                            { name: '合规意识', max: 100 },
+                            { name: '沟通协作', max: 100 },
+                            { name: '管理能力', max: 100 }
+                        ],
+                        center: ['50%', '50%'],
+                        radius: '65%',
+                        shape: 'circle',
+                        splitNumber: 4,
+                        axisName: { color: '#64748b', fontSize: 11, fontWeight: '600' },
+                        splitArea: { areaStyle: { color: ['#f8fafc', '#fff', '#f8fafc', '#fff'] } },
+                        axisLine: { lineStyle: { color: '#e2e8f0' } },
+                        splitLine: { lineStyle: { color: '#e2e8f0' } }
+                    },
+                    series: [{
+                        type: 'radar',
+                        data: [
+                            {
+                                value: [100, 100, 100, 100, 100],
+                                name: '岗位标准',
+                                symbol: 'none',
+                                lineStyle: { type: 'dashed', color: '#10b981' },
+                                areaStyle: { color: 'none' }
+                            },
+                            {
+                                value: dataValues.map(v => Math.floor(v)),
+                                name: '我的水平',
+                                areaStyle: { color: 'rgba(37, 99, 235, 0.2)' },
+                                lineStyle: { width: 2, color: '#2563eb' },
+                                symbol: 'circle',
+                                symbolSize: 6
+                            }
+                        ]
+                    }]
+                };
+                radarChartInstance.setOption(option);
+            };
+
+            onMounted(() => {
+                myJob.value = generateUserScores(jobs[0]);
+                updateMyStats();
+            });
+
+            // --- 核心修改：桑椹图严格根据学期变化更新 ---
+            const updateChart = () => {
+                if (!activeJob.value) return;
+                nextTick(() => {
+                    const chartDom = document.getElementById('sankeyChart');
+                    if (!chartDom) return;
+
+                    if (myChart) myChart.dispose();
+                    myChart = echarts.init(chartDom);
+
+                    // 配色
+                    const colors = ['#5470c6', '#91cc75', '#fac858', '#ee6666', '#73c0de', '#3ba272', '#fc8452', '#9a60b4', '#ea7ccc', '#22c55e', '#eab308', '#6366f1'];
+
+                    const nodes = [{
+                        name: activeJob.value.name,
+                        itemStyle: { color: '#1e40af' }
+                    }];
+                    const links = [];
+                    // 1. 获取当前学期所有课程（加了防空保护）
+                    const currentCourses = activeJob.value.semesterData[selectedSemester.value] || [];
+
+                    // 2. 遍历所有能力
+                    activeJob.value.matrix.forEach((ability, idx) => {
+                        // 3. 过滤出属于当前学期的课程
+                        const activeInSemester = ability.activeCourses.filter(c => currentCourses.includes(c));
+
+                        // 4. 只有当该能力在当前学期有对应课程时，才显示该节点
+                        if (activeInSemester.length > 0) {
+                            // 添加能力节点
+                            nodes.push({
+                                name: ability.name,
+                                itemStyle: { color: colors[idx % colors.length] }
+                            });
+
+                            // 添加 岗位 -> 能力 的连线
+                            links.push({
+                                source: activeJob.value.name,
+                                target: ability.name,
+                                value: activeInSemester.length
+                            });
+
+                            // 添加 课程节点 和 能力 -> 课程 的连线
+                            activeInSemester.forEach(course => {
+                                // 防止课程节点重复添加
+                                if (!nodes.find(n => n.name === course)) {
+                                    nodes.push({
+                                        name: course,
+                                        itemStyle: { color: '#cbd5e1' }
+                                    });
+                                }
+                                links.push({
+                                    source: ability.name,
+                                    target: course,
+                                    value: 1
+                                });
+                            });
+                        }
+                    });
+
+                    const option = {
+                        tooltip: {
+                            trigger: 'item',
+                            formatter: (params) => {
+                                if (params.data.source) {
+                                    return `${params.data.source} ➔ ${params.data.target}`;
+                                }
+                                return params.name;
+                            }
+                        },
+                        series: [{
+                            type: 'sankey',
+                            orient: 'vertical',
+                            left: 10,
+                            right: 10,
+                            top: 20,
+                            bottom: 20,
+                            nodeGap: 30,   // 间距加大，使线条变细
+                            nodeWidth: 10,
+                            lineStyle: {
+                                curveness: 0.3,
+                                opacity: 0.8,   // 透明度降低，细致感
+                                color: 'source'
+                            },
+                            data: nodes,
+                            links: links,
+                            emphasis: { focus: 'adjacent' },
+                            levels: [
+                                { depth: 0, itemStyle: { color: '#1e40af' }, lineStyle: { color: 'source', opacity: 0.5 } },
+                                { depth: 1, lineStyle: { color: 'source', opacity: 0.4 } },
+                                { depth: 2, lineStyle: { color: 'source', opacity: 0.3 } }
+                            ],
+                            label: {
+                                position: 'top',
+                                fontSize: 10,
+                                fontWeight: '600',
+                                color: '#334155',
+                                distance: 5
+                            }
+                        }]
+                    };
+                    myChart.setOption(option);
+                });
+            };
+
+            // 原有数据保持不变
+            const jobs = [
+                {
+                    name: "药品采购", dept: "采购部", code: "ZY001", isFav: false,
+                    stats: { myLevel: "优秀", ...getRandomNums() },
+                    fullDesc: "药品采购岗属于医药企业采购部，主要保障药品合规高效供应，需依据业务与库存制定采购计划，开发评估供应商并审核资质。",
+                    semesterData: {
+                        "2024-2025学年第一学期": ["医药商品基础A", "中医药基础", "药理学A", "药事管理与法规A", "人体解剖生理学B", "基础会计与实务A", "GSP实务A"],
+                        "2024-2025学年第二学期": ["医药市场营销实务A", "医药企业管理实务A", "医药电子商务实务", "药学服务实务A", "药物制剂技术C", "药物警戒A", "实用方剂与中成药", "零售药店实务A", "临床医学基础C"]
+                    },
+                    matrix: [
+                        { name: "能解读医药商品信息", activeCourses: ["医药商品基础A", "中医药基础", "药理学A", "药学服务实务A", "GSP实务A"] },
+                        { name: "能收审评估供应商", activeCourses: ["GSP实务A", "医药企业管理实务A", "药事管理与法规A", "基础会计与实务A"] },
+                        { name: "能分析业务数据", activeCourses: ["基础会计与实务A", "医药电子商务实务", "医药企业管理实务A"] },
+                        { name: "能制定采购计划", activeCourses: ["医药商品基础A", "基础会计与实务A", "医药企业管理实务A", "GSP实务A"] },
+                        { name: "能完成业务谈判", activeCourses: ["医药市场营销实务A", "医药企业管理实务A", "药学服务实务A"] },
+                        { name: "能实施订单跟踪", activeCourses: ["医药电子商务实务", "GSP实务A", "医药企业管理实务A"] },
+                        { name: "能处理质量异常药品", activeCourses: ["GSP实务A", "药物警戒A", "药事管理与法规A", "药物制剂技术C"] },
+                        { name: "熟知医药法律法规", activeCourses: ["药事管理与法规A", "GSP实务A", "药物警戒A"] },
+                        { name: "能进行市场行情分析", activeCourses: ["医药市场营销实务A", "基础会计与实务A", "医药电子商务实务"] },
+                        { name: "能设计采购调研方案", activeCourses: ["医药市场营销实务A", "医药企业管理实务A", "医药电子商务实务"] },
+                        { name: "能维护客情关系", activeCourses: ["医药市场营销实务A", "零售药店实务A", "药学服务实务A"] },
+                        { name: "能运用电子商务平台", activeCourses: ["医药电子商务实务", "基础会计与实务A"] }
+                    ]
+                },
+                {
+                    name: "药品销售", dept: "销售部", code: "ZY002", isFav: false,
+                    stats: { myLevel: "良好", ...getRandomNums() },
+                    fullDesc: "药品销售岗属于医药企业销售部，基于销售目标要求，需开发维护医院、连锁药店等客户，开展学术推广传递产品信息。",
+                    semesterData: {
+                        "2024-2025学年第一学期": ["医药市场营销实务A", "药理学A", "人体解剖生理学B", "医药商品基础A", "中医药基础", "药事管理与法规A"],
+                        "2024-2025学年第二学期": ["医药电子商务实务", "医药企业管理实务A", "临床医学基础C", "零售药店实务A", "实用方剂与中成药", "药学服务实务A", "药物警戒A"]
+                    },
+                    matrix: [
+                        { name: "准确认传商品信息", activeCourses: ["医药市场营销实务A", "药理学A", "临床医学基础C", "医药商品基础A", "实用方剂与中成药"] },
+                        { name: "能分解销售指标", activeCourses: ["医药电子商务实务", "医药企业管理实务A", "医药市场营销实务A", "基础会计与实务A"] },
+                        { name: "能拜访客户及维护客情", activeCourses: ["医药市场营销实务A", "零售药店实务A", "药学服务实务A", "临床医学基础C"] },
+                        { name: "能组织学术会议", activeCourses: ["医药市场营销实务A", "临床医学基础C", "药学服务实务A", "药理学A", "实用方剂与中成药"] },
+                        { name: "能执行促销活动", activeCourses: ["医药电子商务实务", "零售药店实务A", "医药市场营销实务A", "医药商品基础A"] },
+                        { name: "能收集竞品动态", activeCourses: ["医药市场营销实务A", "医药电子商务实务", "医药企业管理实务A"] },
+                        { name: "能处理终端投诉", activeCourses: ["零售药店实务A", "药学服务实务A", "药事管理与法规A", "药物警戒A"] },
+                        { name: "能进行学术推广演示", activeCourses: ["药理学A", "临床医学基础C", "药学服务实务A", "中医药基础"] },
+                        { name: "能制定拜访计划线路", activeCourses: ["医药市场营销实务A", "零售药店实务A", "医药企业管理实务A"] },
+                        { name: "能收集不良反应信息", activeCourses: ["药物警戒A", "药理学A", "药学服务实务A", "临床医学基础C"] },
+                        { name: "能解读区域营销政策", activeCourses: ["药事管理与法规A", "医药市场营销实务A", "医药企业管理实务A"] }
+                    ]
+                },
+                {
+                    name: "药学服务", dept: "零售门店", code: "ZY003", isFav: false,
+                    stats: { myLevel: "一般", ...getRandomNums() },
+                    fullDesc: "药学服务岗属于零售药店门店，以用药安全为核心，为顾客提供用药指导，说明用法用量、不良反应及注意事项。",
+                    semesterData: {
+                        "2024-2025学年第一学期": ["中医药基础", "药理学A", "人体解剖生理学B", "药事管理与法规A", "医药商品基础A"],
+                        "2024-2025学年第二学期": ["药学服务实务A", "零售药店实务A", "实用方剂与中成药", "临床医学基础C", "药物警戒A", "药物制剂技术C", "医药企业管理实务A", "基础会计与实务A"]
+                    },
+                    matrix: [
+                        { name: "能正确询问顾客病症", activeCourses: ["临床医学基础C", "人体解剖生理学B", "药学服务实务A", "中医药基础"] },
+                        { name: "能对症荐药", activeCourses: ["实用方剂与中成药", "中医药基础", "药理学A", "医药商品基础A", "零售药店实务A"] },
+                        { name: "能准确审核处方", activeCourses: ["药事管理与法规A", "药学服务实务A", "药理学A", "临床医学基础C", "药物警戒A"] },
+                        { name: "能进行健康指导", activeCourses: ["药学服务实务A", "零售药店实务A", "人体解剖生理学B", "实用方剂与中成药", "临床医学基础C"] },
+                        { name: "能评估慢病健康情况", activeCourses: ["临床医学基础C", "药理学A", "药学服务实务A", "药物警戒A", "中医药基础"] },
+                        { name: "能指导用药安全", activeCourses: ["药理学A", "药物警戒A", "药学服务实务A", "药物制剂技术C"] },
+                        { name: "能陈列维护药品", activeCourses: ["零售药店实务A", "医药商品基础A", "GSP实务A", "药物制剂技术C"] },
+                        { name: "能处理顾客异议", activeCourses: ["药学服务实务A", "零售药店实务A", "中医药基础", "药事管理与法规A"] },
+                        { name: "能进行健康宣教", activeCourses: ["药学服务实务A", "临床医学基础C", "零售药店实务A", "实用方剂与中成药"] },
+                        { name: "能操作收银及会员系统", activeCourses: ["零售药店实务A", "基础会计与实务A", "医药电子商务实务"] }
+                    ]
+                },
+                {
+                    name: "质量管理", dept: "质管部", code: "ZY004", isFav: false,
+                    stats: { myLevel: "薄弱", ...getRandomNums() },
+                    fullDesc: "质量管理岗属于医药企业质管部，主要工作是搭建并维护质量管理体系，制定质量管理文件，审核供应商与客户资质。",
+                    semesterData: {
+                        "2024-2025学年第一学期": ["GSP实务A", "药事管理与法规A", "医药商品基础A", "中医药基础", "药理学A", "药用基础化学B", "人体解剖生理学B"],
+                        "2024-2025学年第二学期": ["医药企业管理实务A", "药物警戒A", "药物制剂技术C", "药学服务实务A", "零售药店实务A", "基础会计与实务A", "医药电子商务实务"]
+                    },
+                    matrix: [
+                        { name: "编写质量体系文件", activeCourses: ["GSP实务A", "药事管理与法规A", "医药企业管理实务A", "药学服务实务A"] },
+                        { name: "能开展内部质量检查", activeCourses: ["GSP实务A", "药事管理与法规A", "药物警戒A", "零售药店实务A"] },
+                        { name: "能进行药品验收检查", activeCourses: ["GSP实务A", "医药商品基础A", "药物制剂技术C", "药用基础化学B", "药理学A"] },
+                        { name: "能完成药品召回工作", activeCourses: ["GSP实务A", "药事管理与法规A", "药物警戒A", "医药企业管理实务A"] },
+                        { name: "能组织质量内审", activeCourses: ["医药企业管理实务A", "GSP实务A", "药事管理与法规A", "基础会计与实务A"] },
+                        { name: "能审核首营企业资质", activeCourses: ["GSP实务A", "药事管理与法规A", "基础会计与实务A", "医药商品基础A"] },
+                        { name: "能监控温湿度管理", activeCourses: ["GSP实务A", "医药企业管理实务A", "药物制剂技术C", "药用基础化学B"] },
+                        { name: "能开展质量培训", activeCourses: ["药事管理与法规A", "GSP实务A", "药理学A", "药学服务实务A"] },
+                        { name: "能处理质量投诉", activeCourses: ["药物警戒A", "药事管理与法规A", "药学服务实务A", "中医药基础"] },
+                        { name: "能评估质量风险", activeCourses: ["药物警戒A", "医药企业管理实务A", "基础会计与实务A", "药物制剂技术C"] },
+                        { name: "能判定药品质量标准", activeCourses: ["药理学A", "医药商品基础A", "中医药基础", "药用基础化学B", "药物制剂技术C"] },
+                        { name: "能执行效期管理", activeCourses: ["GSP实务A", "零售药店实务A", "医药商品基础A", "基础会计与实务A"] }
+                    ]
+                },
+                {
+                    name: "药品储存", dept: "质管部", code: "ZY005", isFav: false,
+                    stats: { myLevel: "一般", ...getRandomNums() },
+                    fullDesc: "药品储运岗属于医药企业仓储部，主要负责药品入库验收、分类存储。管理库存盘点，执行先进先出原则，处理近效期药品，优化仓储布局。按照运输规程，规范进行药品运输，保证药品质量安全。",
+                    semesterData: {
+                        "2024-2025学年第一学期": ["GSP实务A", "药事管理与法规A", "医药商品基础A", "中医药基础", "药理学A", "药用基础化学B", "人体解剖生理学B"],
+                        "2024-2025学年第二学期": ["医药企业管理实务A", "药物警戒A", "药物制剂技术C", "药学服务实务A", "零售药店实务A", "基础会计与实务A", "医药电子商务实务"]
+                    },
+                    matrix: [
+                        { name: "能操作计算机系统", activeCourses: ["GSP实务A", "药事管理与法规A", "医药企业管理实务A", "药学服务实务A"] },
+                        { name: "能合理堆码托盘", activeCourses: ["GSP实务A", "药事管理与法规A", "药物警戒A", "零售药店实务A"] },
+                        { name: "能正确完成药品分类入库", activeCourses: ["GSP实务A", "医药商品基础A", "药物制剂技术C", "药用基础化学B", "药理学A"] },
+                        { name: "能完成药品召回工作", activeCourses: ["GSP实务A", "药事管理与法规A", "药物警戒A", "医药企业管理实务A"] },
+                        { name: "能完成收货检查操作", activeCourses: ["医药企业管理实务A", "GSP实务A", "药事管理与法规A", "基础会计与实务A"] },
+                        { name: "能完成收货环节单据管理", activeCourses: ["GSP实务A", "药事管理与法规A", "基础会计与实务A", "医药商品基础A"] },
+                        { name: "能完成药品出库拣选、复核", activeCourses: ["GSP实务A", "医药企业管理实务A", "药物制剂技术C", "药用基础化学B"] },
+                        { name: "能完成零货药品拼箱操作", activeCourses: ["药事管理与法规A", "GSP实务A", "药理学A", "药学服务实务A"] },
+                        { name: "能完成保温箱装箱操作", activeCourses: ["药物警戒A", "药事管理与法规A", "药学服务实务A", "中医药基础"] },
+                        { name: "能完成药品装车配送", activeCourses: ["药物警戒A", "医药企业管理实务A", "基础会计与实务A", "药物制剂技术C"] },
+                        { name: "能判定药品质量标准", activeCourses: ["药理学A", "医药商品基础A", "中医药基础", "药用基础化学B", "药物制剂技术C"] }
+                    ]
+                },
+                {
+                    name: "门店运营", dept: "零售门店", code: "ZY006", isFav: false,
+                    stats: { myLevel: "良好", ...getRandomNums() },
+                    fullDesc: "门店运营岗属于零售药店门店，统筹药店日常运营管理，制定销售与毛利目标，分解至单店并跟踪达成。建立标准化运营流程，管控药品陈列、库存与效期，开展促销与会员活动提升业绩。组织员工培训，排查GSP合规风险，处理顾客投诉与客情维护。",
+                    semesterData: {
+                        "2024-2025学年第一学期": ["GSP实务A", "药事管理与法规A", "医药商品基础A", "中医药基础", "药理学A", "药用基础化学B", "人体解剖生理学B"],
+                        "2024-2025学年第二学期": ["医药企业管理实务A", "药物警戒A", "药物制剂技术C", "药学服务实务A", "零售药店实务A", "基础会计与实务A", "医药电子商务实务"]
+                    },
+                    matrix: [
+                        { name: "能解读医药商品信息", activeCourses: ["GSP实务A", "药事管理与法规A", "医药企业管理实务A", "药学服务实务A"] },
+                        { name: "能操作计算机系统", activeCourses: ["GSP实务A", "药事管理与法规A", "药物警戒A", "零售药店实务A"] },
+                        { name: "能进行岗位工作总结", activeCourses: ["GSP实务A", "医药商品基础A", "药物制剂技术C", "药用基础化学B", "药理学A"] },
+                        { name: "能完成药品召回工作", activeCourses: ["GSP实务A", "药事管理与法规A", "药物警戒A", "医药企业管理实务A"] },
+                        { name: "能执行促销活动", activeCourses: ["医药企业管理实务A", "GSP实务A", "药事管理与法规A", "基础会计与实务A"] },
+                        { name: "能熟知医药法律法规", activeCourses: ["GSP实务A", "药事管理与法规A", "基础会计与实务A", "医药商品基础A"] },
+                        { name: "能正确回复顾客用药咨询", activeCourses: ["GSP实务A", "医药企业管理实务A", "药物制剂技术C", "药用基础化学B"] },
+                        { name: "能在库药品进行近效期管理", activeCourses: ["药事管理与法规A", "GSP实务A", "药理学A", "药学服务实务A"] },
+                        { name: "能完成药店门店布局设计", activeCourses: ["药物警戒A", "药事管理与法规A", "药学服务实务A", "中医药基础"] },
+                        { name: "能完成门店请货", activeCourses: ["药物警戒A", "医药企业管理实务A", "基础会计与实务A", "药物制剂技术C"] },
+                        { name: "能分析顾客需求", activeCourses: ["药理学A", "医药商品基础A", "中医药基础", "药用基础化学B", "药物制剂技术C"] },
+                        { name: "能管理门店营业场所", activeCourses: ["GSP实务A", "零售药店实务A", "医药商品基础A", "基础会计与实务A"] }
+                    ]
+                }
+            ];
+
+            const currentSemesterCourses = computed(() => {
+                if (!activeJob.value) return [];
+                return activeJob.value.semesterData[selectedSemester.value] || [];
+            });
+
+            const openDetail = (item) => {
+                activeJob.value = item;
+                page.value = 'detail';
+                window.scrollTo(0, 0);
+                updateChart();
+            };
+
+            window.addEventListener('resize', () => {
+                if (myChart) myChart.resize();
+                if (radarChartInstance) radarChartInstance.resize();
+            });
+
+            return {
+                currentTab, page, jobs, activeJob, hasSelectedJob,
+                openDetail, semesterOptions, selectedSemester,
+                currentSemesterCourses, getStatusColor, getCourseCount, goToMyJobs,
+                toggleFavorite, updateChart,
+                myJob, myStats, isQualified, switchToMine
+            };
+        }
+    }).mount('#app');
+</script>
+</body>
+</html>
