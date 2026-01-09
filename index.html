@@ -1,172 +1,363 @@
 <!DOCTYPE html>
 <html lang="zh-CN">
 <head>
-<meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0,user-scalable=no">
-<title>儿童钟表学习增强版</title>
-<style>
-body { margin:0; background:#f5f7fa; font-family:sans-serif; text-align:center; }
-h2{ margin:8px 0 2px;}
-.tip{ font-size:15px; color:#555;}
-.star{ font-size:18px; margin:4px;}
-.clock{ width:300px; height:300px; border:8px solid #333; border-radius:50%; margin:8px auto; position:relative; background:#fff; touch-action:none;}
-.number{ position:absolute; font-size:18px; font-weight:bold;}
-.hand{ position:absolute; left:50%; bottom:50%; transform-origin:bottom center; transition: transform 0.1s;}
-.hour{ width:10px; height:80px; background:#ff6b6b; border-radius:5px;}
-.minute{ width:8px; height:120px; background:#4dabf7; border-radius:4px;}
-.hand.dragging{ transform: scale(1.2) translateX(-50%);}
-.center{ width:16px; height:16px; background:#333; border-radius:50%; position:absolute; left:50%; top:50%; transform:translate(-50%,-50%);}
-.star-animation{ position:absolute; font-size:24px; animation: rise 1s ease-out forwards; }
-@keyframes rise{0%{opacity:1;transform:translate(-50%,0)}100%{opacity:0;transform:translate(-50%,-60px)}}
-button{ padding:10px 16px; font-size:16px; border-radius:8px; border:none; background:#4dabf7; color:#fff;}
-button.secondary{ background:#6c757d;}
-</style>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no, viewport-fit=cover">
+    <title>钟表小能手 - 全能版</title>
+    <style>
+        :root {
+            --bg: #FFF9E3; --primary: #FFD93D; --blue: #4A90E2; --red: #FF5E5E; --dark: #333;
+        }
+        body, html {
+            margin: 0; padding: 0; width: 100%; height: 100%;
+            font-family: 'PingFang SC', sans-serif; background: var(--bg);
+            overflow: hidden; user-select: none; -webkit-user-select: none; touch-action: none;
+        }
+        .app { display: flex; flex-direction: column; height: 100vh; }
+        
+        .header { background: #fff; padding: 8px; display: flex; flex-direction: column; gap: 8px; border-bottom: 2px solid #EEE; z-index: 100; }
+        .row { display: flex; gap: 8px; overflow-x: auto; scrollbar-width: none; align-items: center; }
+        .row::-webkit-scrollbar { display: none; }
+        .btn-mode { padding: 6px 12px; border-radius: 15px; border: 2px solid var(--primary); background: #fff; font-size: 13px; white-space: nowrap; font-weight: bold; }
+        .btn-mode.active { background: var(--primary); color: #855D00; }
+
+        .switch-label { font-size: 11px; font-weight: bold; color: #666; display: flex; align-items: center; gap: 3px; }
+        .toggle { width: 34px; height: 18px; background: #ddd; border-radius: 9px; position: relative; transition: .3s; }
+        .toggle.on { background: #6BCB77; }
+        .toggle::after { content: ''; position: absolute; width: 14px; height: 14px; background: #fff; border-radius: 50%; top: 2px; left: 2px; transition: .3s; }
+        .toggle.on::after { left: 18px; }
+
+        .stage { flex: 1; position: relative; display: flex; flex-direction: column; align-items: center; justify-content: center; padding-top: 10px; }
+        
+        .clock { width: 260px; height: 260px; background: #fff; border-radius: 50%; border: 10px solid var(--primary); position: relative; box-shadow: 0 8px 0 #EBC22D; flex-shrink: 0; z-index: 1; }
+        .number { position: absolute; width: 36px; height: 36px; margin: -18px; display: flex; align-items: center; justify-content: center; font-size: 24px; font-weight: 900; color: var(--dark); pointer-events: none; }
+
+        /* 数字时钟样式 */
+        .digital-clock {
+            margin-top: 15px; background: #333; color: #00FF41; padding: 5px 15px;
+            border-radius: 8px; font-family: 'Courier New', Courier, monospace;
+            font-size: 24px; font-weight: bold; box-shadow: inset 0 0 10px #000;
+            border: 3px solid #555; display: none;
+        }
+
+        #handsGroup { position: absolute; inset: 0; pointer-events: none; }
+        .hand { position: absolute; bottom: 50%; left: 50%; transform-origin: bottom center; display: flex; flex-direction: column; align-items: center; }
+        .arrow-head { width: 0; height: 0; border-left: 7px solid transparent; border-right: 7px solid transparent; margin-bottom: -2px; }
+        
+        .hour-hand { z-index: 3; }
+        .hour-body { width: 10px; height: 60px; background: var(--blue); border-radius: 5px; border: 2px solid #fff; }
+        .hour-arrow { border-bottom: 12px solid var(--blue); }
+        
+        .min-hand { z-index: 2; }
+        .min-body { width: 7px; height: 90px; background: var(--red); border-radius: 4px; border: 1px solid #fff; }
+        .min-arrow { border-bottom: 12px solid var(--red); border-left-width: 5px; border-right-width: 5px; }
+        
+        .sec-hand { z-index: 1; }
+        .sec-body { width: 2px; height: 105px; background: #FF9F29; }
+        
+        .center-dot { position: absolute; width: 16px; height: 16px; background: var(--dark); border-radius: 50%; top: 50%; left: 50%; transform: translate(-50%, -50%); z-index: 10; border: 2px solid #fff; }
+
+        #puzzleArea { width: 100%; height: 120px; position: relative; margin-top: 10px; }
+        .puzzle-piece { position: absolute; width: 44px; height: 44px; background: #fff; border: 3px solid var(--blue); border-radius: 10px; display: flex; align-items: center; justify-content: center; font-size: 24px; color: var(--blue); font-weight: bold; z-index: 100; box-shadow: 0 4px 10px rgba(0,0,0,0.1); touch-action: none; }
+
+        .footer { background: #fff; padding: 10px; text-align: center; border-radius: 20px 20px 0 0; min-height: 100px; box-shadow: 0 -5px 10px rgba(0,0,0,0.05); }
+        .task-text { font-size: 28px; color: #FF9F29; font-weight: bold; margin: 3px 0; }
+        .btn-check { background: #6BCB77; color: #fff; border: none; padding: 10px 50px; border-radius: 25px; font-size: 18px; font-weight: bold; box-shadow: 0 4px 0 #4EA858; }
+
+        .modal { position: fixed; inset: 0; background: rgba(0,0,0,0.8); display: none; align-items: center; justify-content: center; z-index: 200; }
+    </style>
 </head>
 <body>
 
-<h2 id="levelTitle"></h2>
-<div class="tip" id="levelTip"></div>
-<div class="star" id="starText">⭐ 0</div>
+<div class="app">
+    <div class="header">
+        <div class="row" id="modeSelector">
+            <button class="btn-mode active" data-mode="hour">整点练习</button>
+            <button class="btn-mode" data-mode="half">半点练习</button>
+            <button class="btn-mode" data-mode="puzzle">时钟拼图</button>
+            <button class="btn-mode" data-mode="free">自由探索</button>
+        </div>
+        <div class="row">
+            <div class="switch-label">秒针 <div class="toggle" id="secToggle"></div></div>
+            <div class="switch-label">联动 <div class="toggle on" id="linkToggle"></div></div>
+            <div class="switch-label">数字 <div class="toggle" id="digToggle"></div></div>
+            <div class="switch-label">同步时间 <div class="toggle" id="liveToggle"></div></div>
+        </div>
+    </div>
 
-<div class="clock" id="clock">
-  <script>
-    for(let i=1;i<=12;i++){
-      document.write(`<div class="number" id="n${i}">${i}</div>`);
-    }
-  </script>
-  <div class="hand hour" id="hourHand"></div>
-  <div class="hand minute" id="minuteHand"></div>
-  <div class="center"></div>
+    <div class="stage">
+        <div class="clock" id="clockPlate">
+            <div id="numbersContainer"></div>
+            <div id="handsGroup">
+                <div class="hand hour-hand" id="hourHand">
+                    <div class="arrow-head hour-arrow"></div><div class="hour-body"></div>
+                </div>
+                <div class="hand min-hand" id="minHand">
+                    <div class="arrow-head min-arrow"></div><div class="min-body"></div>
+                </div>
+                <div class="hand sec-hand" id="secHand" style="display:none">
+                    <div class="sec-body"></div>
+                </div>
+            </div>
+            <div class="center-dot"></div>
+        </div>
+        <div class="digital-clock" id="digClock">12:00:00</div>
+        <div id="puzzleArea"></div>
+    </div>
+
+    <div class="footer" id="taskFooter">
+        <div style="color:#888; font-size:12px;">小朋友，请拨到：</div>
+        <div class="task-text" id="targetText">12点整</div>
+        <button class="btn-check" id="checkBtn">拨好啦！</button>
+    </div>
 </div>
 
-<div>
-  <button onclick="speakTarget()">听一听</button>
-  <button class="secondary" onclick="nextLevel()">下一关</button>
+<div class="modal" id="winModal">
+    <div style="background:#fff; padding:40px; border-radius:30px; text-align:center; width:70%">
+        <div style="font-size:60px">🌟</div>
+        <h2 style="color:#FF9F29">你真棒！</h2>
+        <button class="btn-check" id="nextBtn">继续挑战</button>
+    </div>
 </div>
 
 <script>
-/* ===== 状态 ===== */
-let level = 1;
-let targetHour = 3, targetMinute = 0;
-let hour = 12, minute = 0;
-let dragging = null;
-let stars = 0, solved = 0;
+const state = {
+    totalSeconds: 12 * 3600,
+    mode: 'hour',
+    showSec: false,
+    showDig: false,
+    isLinked: true,
+    isLive: false,
+    targetH: 12,
+    targetM: 0,
+    puzzlePlaced: new Array(13).fill(false),
+    activeHand: null,
+    lastAngle: 0,
+    liveTimer: null
+};
 
-/* ===== DOM ===== */
-const clock=document.getElementById('clock');
-const hourHand=document.getElementById('hourHand');
-const minuteHand=document.getElementById('minuteHand');
-const levelTitle=document.getElementById('levelTitle');
-const levelTip=document.getElementById('levelTip');
-const starText=document.getElementById('starText');
+const targetTextEl = document.getElementById('targetText');
+const clockPlate = document.getElementById('clockPlate');
+const hourEl = document.getElementById('hourHand');
+const minEl = document.getElementById('minHand');
+const secEl = document.getElementById('secHand');
+const handsGroup = document.getElementById('handsGroup');
+const digClock = document.getElementById('digClock');
+const puzzleArea = document.getElementById('puzzleArea');
 
-/* ===== 布局数字 ===== */
-(function layoutNumbers(){
-  const r=130;
-  for(let i=1;i<=12;i++){
-    const a=(i-3)*30*Math.PI/180;
-    document.getElementById('n'+i).style.cssText=`left:${150+r*Math.cos(a)-8}px;top:${150+r*Math.sin(a)-10}px`;
-  }
-})();
-
-/* ===== 渲染 ===== */
-function render(){
-  hourHand.style.transform=`translateX(-50%) rotate(${(hour%12)*30+minute*0.5}deg)`;
-  minuteHand.style.transform=`translateX(-50%) rotate(${minute*6}deg)`;
+function say(text) {
+    window.speechSynthesis.cancel();
+    const u = new SpeechSynthesisUtterance(text);
+    u.lang = 'zh-CN'; u.rate = 0.8; u.pitch = 1.2;
+    window.speechSynthesis.speak(u);
 }
 
-/* ===== 出题 ===== */
-function newQuestion(){
-  targetHour=Math.floor(Math.random()*12)+1;
-  if(level===1) targetMinute=0;
-  else targetMinute=Math.random()>0.5?30:0;
+function updateClockUI() {
+    const s = state.totalSeconds % 43200;
+    const curS = Math.floor(state.totalSeconds % 60);
+    const curM = Math.floor((state.totalSeconds / 60) % 60);
+    const curH = Math.floor((state.totalSeconds / 3600) % 12) || 12;
 
-  switch(level){
-    case 1: levelTitle.innerText='第 1 关：整点'; levelTip.innerText='听语音，把钟表拨对'; break;
-    case 2: levelTitle.innerText='第 2 关：整点和半点'; levelTip.innerText='注意长针的位置'; break;
-    case 3: levelTitle.innerText='第 3 关：听一听'; levelTip.innerText=''; break;
-    case 4: levelTitle.innerText='第 4 关：挑战关'; levelTip.innerText='只靠记忆和理解'; break;
-  }
-  hour=Math.floor(Math.random()*12)+1;
-  minute=Math.random()>0.5?30:0;
-  render();
+    const secDeg = (state.totalSeconds % 60) * 6;
+    const minDeg = ((state.totalSeconds / 60) % 60) * 6;
+    const hourDeg = (s / 43200) * 360;
+
+    secEl.style.transform = `translate(-50%, 0) rotate(${secDeg}deg)`;
+    minEl.style.transform = `translate(-50%, 0) rotate(${minDeg}deg)`;
+    hourEl.style.transform = `translate(-50%, 0) rotate(${hourDeg}deg)`;
+
+    // 更新数字时钟内容
+    const pad = (n) => String(n).padStart(2, '0');
+    digClock.innerText = `${pad(curH)}:${pad(curM)}:${pad(curS)}`;
 }
 
-/* ===== 语音 ===== */
-function speakTarget(){
-  const u=new SpeechSynthesisUtterance(`请把钟表拨到 ${targetHour} 点${targetMinute===30?'半':''}`);
-  u.lang='zh-CN';
-  speechSynthesis.cancel(); speechSynthesis.speak(u);
-}
-
-/* ===== 判断 ===== */
-function checkAnswer(){
-  if(hour===targetHour && minute===targetMinute){
-    stars++; solved++;
-    starText.innerText='⭐ '+stars;
-    animateStar();
-    const ok=new SpeechSynthesisUtterance('真棒');
-    ok.lang='zh-CN'; speechSynthesis.speak(ok);
-    if(solved>=5){
-      solved=0;
-      speechSynthesis.speak(new SpeechSynthesisUtterance('这一关完成了'));
+function initNumbers() {
+    const container = document.getElementById('numbersContainer');
+    container.innerHTML = '';
+    for(let i=1; i<=12; i++) {
+        if(state.mode === 'puzzle' && !state.puzzlePlaced[i]) continue;
+        const div = document.createElement('div');
+        div.className = 'number' + (state.mode === 'puzzle' ? ' placed' : '');
+        const rad = (i * 30 - 90) * (Math.PI / 180);
+        div.style.left = (130 + Math.cos(rad) * 105) + 'px';
+        div.style.top = (130 + Math.sin(rad) * 105) + 'px';
+        div.innerText = i;
+        container.appendChild(div);
     }
-    flashHand();
-    setTimeout(newQuestion,1200);
-  }
 }
 
-/* ===== 星星动画 ===== */
-function animateStar(){
-  const star=document.createElement('div');
-  star.className='star-animation';
-  star.style.left='50%';
-  star.style.top='20px';
-  star.innerText='⭐';
-  document.body.appendChild(star);
-  setTimeout(()=>star.remove(),1000);
+function initPuzzle() {
+    puzzleArea.innerHTML = '';
+    const nums = [1,2,3,4,5,6,7,8,9,10,11,12].sort(() => Math.random()-0.5);
+    const rows = 2, cols = 6;
+    const cellW = puzzleArea.offsetWidth / cols;
+    const cellH = puzzleArea.offsetHeight / rows;
+
+    nums.forEach((n, i) => {
+        const p = document.createElement('div');
+        p.className = 'puzzle-piece';
+        p.innerText = n;
+        const r = Math.floor(i/cols), c = i%cols;
+        p.style.left = (c * cellW + 5) + 'px';
+        p.style.top = (r * cellH + 5) + 'px';
+
+        let startX, startY, origL, origT;
+        p.ontouchstart = (e) => {
+            const t = e.touches[0];
+            startX = t.clientX; startY = t.clientY;
+            origL = parseFloat(p.style.left); origT = parseFloat(p.style.top);
+        };
+        p.ontouchmove = (e) => {
+            e.preventDefault();
+            const t = e.touches[0];
+            p.style.left = (origL + t.clientX - startX) + 'px';
+            p.style.top = (origT + t.clientY - startY) + 'px';
+        };
+        p.ontouchend = () => {
+            const rect = clockPlate.getBoundingClientRect();
+            const cx = rect.left + rect.width/2, cy = rect.top + rect.height/2;
+            const rad = (n * 30 - 90) * (Math.PI / 180);
+            const tx = cx + Math.cos(rad) * 105, ty = cy + Math.sin(rad) * 105;
+            const pRect = p.getBoundingClientRect();
+            const px = pRect.left + 22, py = pRect.top + 22;
+
+            if(Math.hypot(px - tx, py - ty) < 45) {
+                state.puzzlePlaced[n] = true; p.remove(); initNumbers(); say(n + "点归位");
+                if(state.puzzlePlaced.filter(x=>x).length === 12) { 
+                    document.getElementById('winModal').style.display = 'flex';
+                    say("真棒！你修好了时钟！");
+                }
+            }
+        };
+        puzzleArea.appendChild(p);
+    });
 }
 
-/* ===== 闪烁指针 ===== */
-function flashHand(){
-  hourHand.style.transition='transform 0.1s, background 0.2s';
-  minuteHand.style.transition='transform 0.1s, background 0.2s';
-  hourHand.style.background='#ff0';
-  minuteHand.style.background='#ff0';
-  setTimeout(()=>{ hourHand.style.background='#ff6b6b'; minuteHand.style.background='#4dabf7'; },300);
+function resetGame() {
+    state.puzzlePlaced.fill(false);
+    document.getElementById('winModal').style.display = 'none';
+    puzzleArea.innerHTML = '';
+    stopLive();
+    
+    if(state.mode === 'puzzle') {
+        handsGroup.style.display = 'none';
+        digClock.style.display = 'none';
+        document.getElementById('taskFooter').style.visibility = 'hidden';
+        initPuzzle();
+    } else {
+        handsGroup.style.display = 'block';
+        digClock.style.display = state.showDig ? 'block' : 'none';
+        document.getElementById('taskFooter').style.visibility = 'visible';
+        state.targetH = Math.floor(Math.random()*12) + 1;
+        state.targetM = state.mode === 'half' ? 30 : (state.mode === 'hour' ? 0 : (Math.random()>0.5?0:30));
+        targetTextEl.innerText = `${state.targetH}点${state.targetM === 30 ? '半' : '整'}`;
+        say("请拨到" + targetTextEl.innerText);
+    }
+    initNumbers();
 }
 
-/* ===== 拖动优化 ===== */
-function getAngle(x,y){
-  const r=clock.getBoundingClientRect();
-  return Math.atan2(y-(r.top+r.height/2),x-(r.left+r.width/2))*180/Math.PI +90;
-}
-function hitTest(hand,x,y){
-  const rect=hand.getBoundingClientRect();
-  return x>rect.left-25 && x<rect.right+25 && y>rect.top-25 && y<rect.bottom+25;
+function syncToLive() {
+    const now = new Date();
+    state.totalSeconds = now.getHours() * 3600 + now.getMinutes() * 60 + now.getSeconds();
+    updateClockUI();
 }
 
-clock.addEventListener('pointerdown',e=>{
-  if(hitTest(minuteHand,e.clientX,e.clientY)){ dragging='minute'; minuteHand.classList.add('dragging'); }
-  else if(hitTest(hourHand,e.clientX,e.clientY)){ dragging='hour'; hourHand.classList.add('dragging'); }
-});
+function startLive() {
+    state.isLive = true;
+    document.getElementById('liveToggle').classList.add('on');
+    syncToLive();
+    state.liveTimer = setInterval(syncToLive, 1000);
+}
 
-clock.addEventListener('pointermove',e=>{
-  if(!dragging) return;
-  const a=getAngle(e.clientX,e.clientY);
-  if(dragging==='minute') minute=a>180?30:0;
-  else{ hour=Math.round(a/30); if(hour<=0)hour+=12; }
-  render();
-});
+function stopLive() {
+    state.isLive = false;
+    document.getElementById('liveToggle').classList.remove('on');
+    clearInterval(state.liveTimer);
+}
 
-clock.addEventListener('pointerup',()=>{ dragging=null; hourHand.classList.remove('dragging'); minuteHand.classList.remove('dragging'); checkAnswer(); });
-clock.addEventListener('pointerleave',()=>{ dragging=null; hourHand.classList.remove('dragging'); minuteHand.classList.remove('dragging'); });
+function handleTouch(e) {
+    if(state.mode === 'puzzle' || !e.touches[0]) return;
+    
+    // 动作触发：如果处于同步时间模式，自动关闭
+    if(state.isLive) stopLive();
 
-/* ===== 切关 ===== */
-function nextLevel(){ level=level===4?1:level+1; solved=0; newQuestion(); }
+    const rect = clockPlate.getBoundingClientRect();
+    const cx = rect.left + rect.width/2, cy = rect.top + rect.height/2;
+    const t = e.touches[0];
+    let angle = Math.atan2(t.clientY - cy, t.clientX - cx) * 180 / Math.PI + 90;
+    if(angle < 0) angle += 360;
 
-/* ===== 初始化 ===== */
-newQuestion();
+    if(e.type === 'touchstart') {
+        const dist = Math.hypot(t.clientX - cx, t.clientY - cy);
+        if(state.showSec && dist > 100) state.activeHand = 'sec';
+        else if(dist > 60) state.activeHand = 'min';
+        else state.activeHand = 'hour';
+        state.lastAngle = angle;
+    } else if(e.type === 'touchmove') {
+        e.preventDefault();
+        let diff = angle - state.lastAngle;
+        if(diff > 180) diff -= 360; if(diff < -180) diff += 360;
+        
+        if(state.isLinked) {
+            if(state.activeHand === 'sec') state.totalSeconds += diff / 6;
+            else if(state.activeHand === 'min') state.totalSeconds += diff * 10;
+            else state.totalSeconds += diff * 120;
+        } else {
+            if(state.activeHand === 'min') state.totalSeconds += diff * 10;
+            else if(state.activeHand === 'hour') state.totalSeconds += diff * 120;
+        }
+        state.lastAngle = angle;
+        updateClockUI();
+    } else if(e.type === 'touchend') {
+        const h = Math.floor((state.totalSeconds / 3600) % 12) || 12;
+        const m = Math.floor((state.totalSeconds / 60) % 60);
+        if(m === 0 || m === 30) say(`${h}点${m===30?'半':'整'}`);
+        state.activeHand = null;
+    }
+}
+
+clockPlate.addEventListener('touchstart', handleTouch);
+clockPlate.addEventListener('touchmove', handleTouch);
+clockPlate.addEventListener('touchend', handleTouch);
+
+document.getElementById('modeSelector').onclick = (e) => {
+    if(!e.target.classList.contains('btn-mode')) return;
+    document.querySelectorAll('.btn-mode').forEach(b => b.classList.remove('active'));
+    e.target.classList.add('active');
+    state.mode = e.target.dataset.mode;
+    resetGame();
+};
+
+document.getElementById('secToggle').onclick = function() {
+    state.showSec = !state.showSec; this.classList.toggle('on');
+    secEl.style.display = state.showSec ? 'flex' : 'none';
+};
+document.getElementById('linkToggle').onclick = function() {
+    state.isLinked = !state.isLinked; this.classList.toggle('on');
+};
+document.getElementById('digToggle').onclick = function() {
+    state.showDig = !state.showDig; this.classList.toggle('on');
+    digClock.style.display = (state.showDig && state.mode !== 'puzzle') ? 'block' : 'none';
+};
+document.getElementById('liveToggle').onclick = function() {
+    if(!state.isLive) startLive(); else stopLive();
+};
+
+document.getElementById('checkBtn').onclick = () => {
+    const h = Math.floor((state.totalSeconds / 3600) % 12) || 12;
+    const minDeg = ((state.totalSeconds / 60) % 60) * 6;
+    let ok = false;
+    if (state.targetM === 0) {
+        if (h === state.targetH && (minDeg >= 345 || minDeg <= 15)) ok = true;
+    } else {
+        if (h === state.targetH && (minDeg >= 165 && minDeg <= 195)) ok = true;
+    }
+    if(ok) { document.getElementById('winModal').style.display = 'flex'; say("完全正确！"); }
+    else say("再试一次吧");
+};
+
+document.getElementById('nextBtn').onclick = resetGame;
+window.onload = () => { resetGame(); updateClockUI(); };
 </script>
 </body>
 </html>
