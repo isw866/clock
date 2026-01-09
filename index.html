@@ -3,19 +3,24 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no, viewport-fit=cover">
-    <title>钟表小能手</title>
+    <title>钟表小能手 - 完美适配版</title>
     <style>
         :root {
             --bg: #FFF9E3; --primary: #FFD93D; --blue: #4A90E2; --red: #FF5E5E; --dark: #333;
         }
         body, html {
-            margin: 0; padding: 0; width: 100%; height: 100%;
+            margin: 0; padding: 0; 
+            /* 关键修复：解决手机端100vh包含工具栏的问题 */
+            width: 100%; height: 100vh; height: 100svh; 
             font-family: 'PingFang SC', sans-serif; background: var(--bg);
             overflow: hidden; user-select: none; -webkit-user-select: none; touch-action: none;
         }
-        .app { display: flex; flex-direction: column; height: 100vh; }
+        .app { 
+            display: flex; flex-direction: column; 
+            height: 100vh; height: 100svh; /* 确保容器高度同步 */
+        }
         
-        .header { background: #fff; padding: 8px; display: flex; flex-direction: column; gap: 8px; border-bottom: 2px solid #EEE; z-index: 100; }
+        .header { background: #fff; padding: 8px; display: flex; flex-direction: column; gap: 8px; border-bottom: 2px solid #EEE; z-index: 100; flex-shrink: 0; }
         .row { display: flex; gap: 8px; overflow-x: auto; scrollbar-width: none; align-items: center; }
         .row::-webkit-scrollbar { display: none; }
         .btn-mode { padding: 6px 12px; border-radius: 15px; border: 2px solid var(--primary); background: #fff; font-size: 13px; white-space: nowrap; font-weight: bold; }
@@ -27,13 +32,21 @@
         .toggle::after { content: ''; position: absolute; width: 14px; height: 14px; background: #fff; border-radius: 50%; top: 2px; left: 2px; transition: .3s; }
         .toggle.on::after { left: 18px; }
 
-        .stage { flex: 1; position: relative; display: flex; flex-direction: column; align-items: center; justify-content: center; padding-top: 10px; }
+        .stage { 
+            flex: 1; position: relative; display: flex; flex-direction: column; 
+            align-items: center; justify-content: center; 
+            overflow: hidden; /* 防止内容撑破 */
+        }
         
-        .clock { width: 260px; height: 260px; background: #fff; border-radius: 50%; border: 10px solid var(--primary); position: relative; box-shadow: 0 8px 0 #EBC22D; flex-shrink: 0; z-index: 1; }
+        .clock { 
+            width: 260px; height: 260px; background: #fff; border-radius: 50%; 
+            border: 10px solid var(--primary); position: relative; 
+            box-shadow: 0 8px 0 #EBC22D; flex-shrink: 0; z-index: 1; 
+        }
         .number { position: absolute; width: 36px; height: 36px; margin: -18px; display: flex; align-items: center; justify-content: center; font-size: 24px; font-weight: 900; color: var(--dark); pointer-events: none; }
 
         .digital-clock {
-            margin-top: 15px; background: #333; color: #00FF41; padding: 5px 15px;
+            margin-top: 10px; background: #333; color: #00FF41; padding: 5px 15px;
             border-radius: 8px; font-family: 'Courier New', Courier, monospace;
             font-size: 24px; font-weight: bold; box-shadow: inset 0 0 10px #000;
             border: 3px solid #555; display: none;
@@ -56,12 +69,25 @@
         
         .center-dot { position: absolute; width: 16px; height: 16px; background: var(--dark); border-radius: 50%; top: 50%; left: 50%; transform: translate(-50%, -50%); z-index: 10; border: 2px solid #fff; }
 
-        #puzzleArea { width: 100%; height: 120px; position: relative; margin-top: 10px; }
+        #puzzleArea { width: 100%; height: 110px; position: relative; margin-top: 5px; }
         .puzzle-piece { position: absolute; width: 44px; height: 44px; background: #fff; border: 3px solid var(--blue); border-radius: 10px; display: flex; align-items: center; justify-content: center; font-size: 24px; color: var(--blue); font-weight: bold; z-index: 100; box-shadow: 0 4px 10px rgba(0,0,0,0.1); touch-action: none; }
 
-        .footer { background: #fff; padding: 10px; text-align: center; border-radius: 20px 20px 0 0; min-height: 100px; box-shadow: 0 -5px 10px rgba(0,0,0,0.05); }
+        /* 底部适配：flex-shrink: 0 保证不被压缩，padding-bottom 适配全面屏 */
+        .footer { 
+            background: #fff; padding: 10px 10px calc(15px + env(safe-area-inset-bottom)); 
+            text-align: center; border-radius: 20px 20px 0 0; 
+            box-shadow: 0 -5px 10px rgba(0,0,0,0.05); 
+            flex-shrink: 0; 
+        }
         .task-text { font-size: 28px; color: #FF9F29; font-weight: bold; margin: 3px 0; }
-        .btn-check { background: #6BCB77; color: #fff; border: none; padding: 10px 50px; border-radius: 25px; font-size: 18px; font-weight: bold; box-shadow: 0 4px 0 #4EA858; }
+        .btn-check { 
+            background: #6BCB77; color: #fff; border: none; 
+            padding: 12px 60px; border-radius: 25px; 
+            font-size: 18px; font-weight: bold; 
+            box-shadow: 0 4px 0 #4EA858; 
+            cursor: pointer;
+            -webkit-tap-highlight-color: transparent;
+        }
 
         .modal { position: fixed; inset: 0; background: rgba(0,0,0,0.8); display: none; align-items: center; justify-content: center; z-index: 200; }
     </style>
@@ -112,7 +138,7 @@
 </div>
 
 <div class="modal" id="winModal">
-    <div style="background:#fff; padding:40px; border-radius:30px; text-align:center; width:70%">
+    <div style="background:#fff; padding:30px; border-radius:30px; text-align:center; width:70%">
         <div style="font-size:60px">🌟</div>
         <h2 style="color:#FF9F29">你真棒！</h2>
         <button class="btn-check" id="nextBtn">继续挑战</button>
@@ -120,20 +146,14 @@
 </div>
 
 <script>
-// 状态管理
+// 此处JS代码逻辑保持不变，确保功能稳定
 const state = {
-    h: 12, m: 0, s: 0, // 独立存储时分秒，解决解耦问题
+    h: 12, m: 0, s: 0,
     mode: 'hour',
-    showSec: false,
-    showDig: false,
-    isLinked: true,
-    isLive: false,
-    targetH: 12,
-    targetM: 0,
+    showSec: false, showDig: false, isLinked: true, isLive: false,
+    targetH: 12, targetM: 0,
     puzzlePlaced: new Array(13).fill(false),
-    activeHand: null,
-    lastAngle: 0,
-    liveTimer: null
+    activeHand: null, lastAngle: 0, liveTimer: null
 };
 
 const targetTextEl = document.getElementById('targetText');
@@ -152,18 +172,13 @@ function say(text) {
     window.speechSynthesis.speak(u);
 }
 
-// 核心显示更新：支持解耦显示
 function updateClockUI() {
-    // 指针度数计算
     const secDeg = state.s * 6;
     const minDeg = state.m * 6 + (state.isLinked ? state.s * 0.1 : 0);
     const hourDeg = (state.h % 12) * 30 + (state.isLinked ? (state.m * 0.5 + state.s * (0.5/60)) : 0);
-
     secEl.style.transform = `translate(-50%, 0) rotate(${secDeg}deg)`;
     minEl.style.transform = `translate(-50%, 0) rotate(${minDeg}deg)`;
     hourEl.style.transform = `translate(-50%, 0) rotate(${hourDeg}deg)`;
-
-    // 数字时钟同步
     const pad = (n) => String(Math.floor(n)).padStart(2, '0');
     digClock.innerText = `${pad(state.h)}:${pad(state.m)}:${pad(state.s)}`;
 }
@@ -171,13 +186,11 @@ function updateClockUI() {
 function handleTouch(e) {
     if(state.mode === 'puzzle' || !e.touches[0]) return;
     if(state.isLive) stopLive();
-
     const rect = clockPlate.getBoundingClientRect();
     const cx = rect.left + rect.width/2, cy = rect.top + rect.height/2;
     const t = e.touches[0];
     let angle = Math.atan2(t.clientY - cy, t.clientX - cx) * 180 / Math.PI + 90;
     if(angle < 0) angle += 360;
-
     if(e.type === 'touchstart') {
         const dist = Math.hypot(t.clientX - cx, t.clientY - cy);
         if(state.showSec && dist > 100) state.activeHand = 'sec';
@@ -188,33 +201,21 @@ function handleTouch(e) {
         e.preventDefault();
         let diff = angle - state.lastAngle;
         if(diff > 180) diff -= 360; if(diff < -180) diff += 360;
-        
-        const deltaSec = diff / 6; // 转1度是1/6秒
-
+        const deltaSec = diff / 6;
         if(state.isLinked) {
-            // 联动模式：基于秒数全量增减
             let total = state.h * 3600 + state.m * 60 + state.s;
             if(state.activeHand === 'sec') total += deltaSec;
             else if(state.activeHand === 'min') total += deltaSec * 60;
             else total += deltaSec * 3600;
-            
             if(total < 0) total += 43200;
             total %= 43200;
-            
             state.h = Math.floor(total / 3600) || 12;
             state.m = Math.floor((total % 3600) / 60);
             state.s = Math.floor(total % 60);
         } else {
-            // 解耦模式：仅修改当前指针对应的值
-            if(state.activeHand === 'sec') {
-                state.s = (state.s + deltaSec + 60) % 60;
-            } else if(state.activeHand === 'min') {
-                state.m = (state.m + deltaSec + 60) % 60;
-            } else {
-                state.h = (state.h + deltaSec/30*2.5 + 12); 
-                state.h = state.h > 12 ? state.h - 12 : state.h;
-                if(state.h <= 0) state.h += 12;
-            }
+            if(state.activeHand === 'sec') state.s = (state.s + deltaSec + 60) % 60;
+            else if(state.activeHand === 'min') state.m = (state.m + deltaSec + 60) % 60;
+            else { state.h = (state.h + deltaSec/30*2.5 + 12); state.h = state.h > 12 ? state.h - 12 : state.h; if(state.h <= 0) state.h += 12; }
         }
         state.lastAngle = angle;
         updateClockUI();
@@ -224,7 +225,6 @@ function handleTouch(e) {
     }
 }
 
-// 基础初始化逻辑
 function initNumbers() {
     const container = document.getElementById('numbersContainer');
     container.innerHTML = '';
@@ -288,14 +288,7 @@ function resetGame() {
     initNumbers(); updateClockUI();
 }
 
-function syncToLive() {
-    const now = new Date();
-    state.h = now.getHours() % 12 || 12;
-    state.m = now.getMinutes();
-    state.s = now.getSeconds();
-    updateClockUI();
-}
-
+function syncToLive() { const now = new Date(); state.h = now.getHours() % 12 || 12; state.m = now.getMinutes(); state.s = now.getSeconds(); updateClockUI(); }
 function startLive() { state.isLive = true; document.getElementById('liveToggle').classList.add('on'); syncToLive(); state.liveTimer = setInterval(syncToLive, 1000); }
 function stopLive() { state.isLive = false; document.getElementById('liveToggle').classList.remove('on'); clearInterval(state.liveTimer); }
 
