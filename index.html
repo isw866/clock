@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no, viewport-fit=cover">
-    <title>钟表小能手 - 全能版</title>
+    <title>钟表小能手</title>
     <style>
         :root {
             --bg: #FFF9E3; --primary: #FFD93D; --blue: #4A90E2; --red: #FF5E5E; --dark: #333;
@@ -32,7 +32,6 @@
         .clock { width: 260px; height: 260px; background: #fff; border-radius: 50%; border: 10px solid var(--primary); position: relative; box-shadow: 0 8px 0 #EBC22D; flex-shrink: 0; z-index: 1; }
         .number { position: absolute; width: 36px; height: 36px; margin: -18px; display: flex; align-items: center; justify-content: center; font-size: 24px; font-weight: 900; color: var(--dark); pointer-events: none; }
 
-        /* 数字时钟样式 */
         .digital-clock {
             margin-top: 15px; background: #333; color: #00FF41; padding: 5px 15px;
             border-radius: 8px; font-family: 'Courier New', Courier, monospace;
@@ -121,8 +120,9 @@
 </div>
 
 <script>
+// 状态管理
 const state = {
-    totalSeconds: 12 * 3600,
+    h: 12, m: 0, s: 0, // 独立存储时分秒，解决解耦问题
     mode: 'hour',
     showSec: false,
     showDig: false,
@@ -152,25 +152,79 @@ function say(text) {
     window.speechSynthesis.speak(u);
 }
 
+// 核心显示更新：支持解耦显示
 function updateClockUI() {
-    const s = state.totalSeconds % 43200;
-    const curS = Math.floor(state.totalSeconds % 60);
-    const curM = Math.floor((state.totalSeconds / 60) % 60);
-    const curH = Math.floor((state.totalSeconds / 3600) % 12) || 12;
-
-    const secDeg = (state.totalSeconds % 60) * 6;
-    const minDeg = ((state.totalSeconds / 60) % 60) * 6;
-    const hourDeg = (s / 43200) * 360;
+    // 指针度数计算
+    const secDeg = state.s * 6;
+    const minDeg = state.m * 6 + (state.isLinked ? state.s * 0.1 : 0);
+    const hourDeg = (state.h % 12) * 30 + (state.isLinked ? (state.m * 0.5 + state.s * (0.5/60)) : 0);
 
     secEl.style.transform = `translate(-50%, 0) rotate(${secDeg}deg)`;
     minEl.style.transform = `translate(-50%, 0) rotate(${minDeg}deg)`;
     hourEl.style.transform = `translate(-50%, 0) rotate(${hourDeg}deg)`;
 
-    // 更新数字时钟内容
-    const pad = (n) => String(n).padStart(2, '0');
-    digClock.innerText = `${pad(curH)}:${pad(curM)}:${pad(curS)}`;
+    // 数字时钟同步
+    const pad = (n) => String(Math.floor(n)).padStart(2, '0');
+    digClock.innerText = `${pad(state.h)}:${pad(state.m)}:${pad(state.s)}`;
 }
 
+function handleTouch(e) {
+    if(state.mode === 'puzzle' || !e.touches[0]) return;
+    if(state.isLive) stopLive();
+
+    const rect = clockPlate.getBoundingClientRect();
+    const cx = rect.left + rect.width/2, cy = rect.top + rect.height/2;
+    const t = e.touches[0];
+    let angle = Math.atan2(t.clientY - cy, t.clientX - cx) * 180 / Math.PI + 90;
+    if(angle < 0) angle += 360;
+
+    if(e.type === 'touchstart') {
+        const dist = Math.hypot(t.clientX - cx, t.clientY - cy);
+        if(state.showSec && dist > 100) state.activeHand = 'sec';
+        else if(dist > 60) state.activeHand = 'min';
+        else state.activeHand = 'hour';
+        state.lastAngle = angle;
+    } else if(e.type === 'touchmove') {
+        e.preventDefault();
+        let diff = angle - state.lastAngle;
+        if(diff > 180) diff -= 360; if(diff < -180) diff += 360;
+        
+        const deltaSec = diff / 6; // 转1度是1/6秒
+
+        if(state.isLinked) {
+            // 联动模式：基于秒数全量增减
+            let total = state.h * 3600 + state.m * 60 + state.s;
+            if(state.activeHand === 'sec') total += deltaSec;
+            else if(state.activeHand === 'min') total += deltaSec * 60;
+            else total += deltaSec * 3600;
+            
+            if(total < 0) total += 43200;
+            total %= 43200;
+            
+            state.h = Math.floor(total / 3600) || 12;
+            state.m = Math.floor((total % 3600) / 60);
+            state.s = Math.floor(total % 60);
+        } else {
+            // 解耦模式：仅修改当前指针对应的值
+            if(state.activeHand === 'sec') {
+                state.s = (state.s + deltaSec + 60) % 60;
+            } else if(state.activeHand === 'min') {
+                state.m = (state.m + deltaSec + 60) % 60;
+            } else {
+                state.h = (state.h + deltaSec/30*2.5 + 12); 
+                state.h = state.h > 12 ? state.h - 12 : state.h;
+                if(state.h <= 0) state.h += 12;
+            }
+        }
+        state.lastAngle = angle;
+        updateClockUI();
+    } else if(e.type === 'touchend') {
+        if(Math.floor(state.m) === 0 || Math.floor(state.m) === 30) say(`${Math.floor(state.h)}点${Math.floor(state.m)===30?'半':'整'}`);
+        state.activeHand = null;
+    }
+}
+
+// 基础初始化逻辑
 function initNumbers() {
     const container = document.getElementById('numbersContainer');
     container.innerHTML = '';
@@ -192,42 +246,21 @@ function initPuzzle() {
     const rows = 2, cols = 6;
     const cellW = puzzleArea.offsetWidth / cols;
     const cellH = puzzleArea.offsetHeight / rows;
-
     nums.forEach((n, i) => {
         const p = document.createElement('div');
-        p.className = 'puzzle-piece';
-        p.innerText = n;
+        p.className = 'puzzle-piece'; p.innerText = n;
         const r = Math.floor(i/cols), c = i%cols;
-        p.style.left = (c * cellW + 5) + 'px';
-        p.style.top = (r * cellH + 5) + 'px';
-
+        p.style.left = (c * cellW + 5) + 'px'; p.style.top = (r * cellH + 5) + 'px';
         let startX, startY, origL, origT;
-        p.ontouchstart = (e) => {
-            const t = e.touches[0];
-            startX = t.clientX; startY = t.clientY;
-            origL = parseFloat(p.style.left); origT = parseFloat(p.style.top);
-        };
-        p.ontouchmove = (e) => {
-            e.preventDefault();
-            const t = e.touches[0];
-            p.style.left = (origL + t.clientX - startX) + 'px';
-            p.style.top = (origT + t.clientY - startY) + 'px';
-        };
+        p.ontouchstart = (e) => { const t = e.touches[0]; startX = t.clientX; startY = t.clientY; origL = parseFloat(p.style.left); origT = parseFloat(p.style.top); };
+        p.ontouchmove = (e) => { e.preventDefault(); const t = e.touches[0]; p.style.left = (origL + t.clientX - startX) + 'px'; p.style.top = (origT + t.clientY - startY) + 'px'; };
         p.ontouchend = () => {
             const rect = clockPlate.getBoundingClientRect();
             const cx = rect.left + rect.width/2, cy = rect.top + rect.height/2;
             const rad = (n * 30 - 90) * (Math.PI / 180);
             const tx = cx + Math.cos(rad) * 105, ty = cy + Math.sin(rad) * 105;
-            const pRect = p.getBoundingClientRect();
-            const px = pRect.left + 22, py = pRect.top + 22;
-
-            if(Math.hypot(px - tx, py - ty) < 45) {
-                state.puzzlePlaced[n] = true; p.remove(); initNumbers(); say(n + "点归位");
-                if(state.puzzlePlaced.filter(x=>x).length === 12) { 
-                    document.getElementById('winModal').style.display = 'flex';
-                    say("真棒！你修好了时钟！");
-                }
-            }
+            const px = p.getBoundingClientRect().left + 22, py = p.getBoundingClientRect().top + 22;
+            if(Math.hypot(px - tx, py - ty) < 45) { state.puzzlePlaced[n] = true; p.remove(); initNumbers(); say(n + "点归位"); if(state.puzzlePlaced.filter(x=>x).length === 12) { document.getElementById('winModal').style.display = 'flex'; say("真棒！你修好了时钟！"); } }
         };
         puzzleArea.appendChild(p);
     });
@@ -238,10 +271,9 @@ function resetGame() {
     document.getElementById('winModal').style.display = 'none';
     puzzleArea.innerHTML = '';
     stopLive();
-    
+    state.h = 12; state.m = 0; state.s = 0;
     if(state.mode === 'puzzle') {
-        handsGroup.style.display = 'none';
-        digClock.style.display = 'none';
+        handsGroup.style.display = 'none'; digClock.style.display = 'none';
         document.getElementById('taskFooter').style.visibility = 'hidden';
         initPuzzle();
     } else {
@@ -253,68 +285,19 @@ function resetGame() {
         targetTextEl.innerText = `${state.targetH}点${state.targetM === 30 ? '半' : '整'}`;
         say("请拨到" + targetTextEl.innerText);
     }
-    initNumbers();
+    initNumbers(); updateClockUI();
 }
 
 function syncToLive() {
     const now = new Date();
-    state.totalSeconds = now.getHours() * 3600 + now.getMinutes() * 60 + now.getSeconds();
+    state.h = now.getHours() % 12 || 12;
+    state.m = now.getMinutes();
+    state.s = now.getSeconds();
     updateClockUI();
 }
 
-function startLive() {
-    state.isLive = true;
-    document.getElementById('liveToggle').classList.add('on');
-    syncToLive();
-    state.liveTimer = setInterval(syncToLive, 1000);
-}
-
-function stopLive() {
-    state.isLive = false;
-    document.getElementById('liveToggle').classList.remove('on');
-    clearInterval(state.liveTimer);
-}
-
-function handleTouch(e) {
-    if(state.mode === 'puzzle' || !e.touches[0]) return;
-    
-    // 动作触发：如果处于同步时间模式，自动关闭
-    if(state.isLive) stopLive();
-
-    const rect = clockPlate.getBoundingClientRect();
-    const cx = rect.left + rect.width/2, cy = rect.top + rect.height/2;
-    const t = e.touches[0];
-    let angle = Math.atan2(t.clientY - cy, t.clientX - cx) * 180 / Math.PI + 90;
-    if(angle < 0) angle += 360;
-
-    if(e.type === 'touchstart') {
-        const dist = Math.hypot(t.clientX - cx, t.clientY - cy);
-        if(state.showSec && dist > 100) state.activeHand = 'sec';
-        else if(dist > 60) state.activeHand = 'min';
-        else state.activeHand = 'hour';
-        state.lastAngle = angle;
-    } else if(e.type === 'touchmove') {
-        e.preventDefault();
-        let diff = angle - state.lastAngle;
-        if(diff > 180) diff -= 360; if(diff < -180) diff += 360;
-        
-        if(state.isLinked) {
-            if(state.activeHand === 'sec') state.totalSeconds += diff / 6;
-            else if(state.activeHand === 'min') state.totalSeconds += diff * 10;
-            else state.totalSeconds += diff * 120;
-        } else {
-            if(state.activeHand === 'min') state.totalSeconds += diff * 10;
-            else if(state.activeHand === 'hour') state.totalSeconds += diff * 120;
-        }
-        state.lastAngle = angle;
-        updateClockUI();
-    } else if(e.type === 'touchend') {
-        const h = Math.floor((state.totalSeconds / 3600) % 12) || 12;
-        const m = Math.floor((state.totalSeconds / 60) % 60);
-        if(m === 0 || m === 30) say(`${h}点${m===30?'半':'整'}`);
-        state.activeHand = null;
-    }
-}
+function startLive() { state.isLive = true; document.getElementById('liveToggle').classList.add('on'); syncToLive(); state.liveTimer = setInterval(syncToLive, 1000); }
+function stopLive() { state.isLive = false; document.getElementById('liveToggle').classList.remove('on'); clearInterval(state.liveTimer); }
 
 clockPlate.addEventListener('touchstart', handleTouch);
 clockPlate.addEventListener('touchmove', handleTouch);
@@ -328,36 +311,19 @@ document.getElementById('modeSelector').onclick = (e) => {
     resetGame();
 };
 
-document.getElementById('secToggle').onclick = function() {
-    state.showSec = !state.showSec; this.classList.toggle('on');
-    secEl.style.display = state.showSec ? 'flex' : 'none';
-};
-document.getElementById('linkToggle').onclick = function() {
-    state.isLinked = !state.isLinked; this.classList.toggle('on');
-};
-document.getElementById('digToggle').onclick = function() {
-    state.showDig = !state.showDig; this.classList.toggle('on');
-    digClock.style.display = (state.showDig && state.mode !== 'puzzle') ? 'block' : 'none';
-};
-document.getElementById('liveToggle').onclick = function() {
-    if(!state.isLive) startLive(); else stopLive();
-};
+document.getElementById('secToggle').onclick = function() { state.showSec = !state.showSec; this.classList.toggle('on'); secEl.style.display = state.showSec ? 'flex' : 'none'; };
+document.getElementById('linkToggle').onclick = function() { state.isLinked = !state.isLinked; this.classList.toggle('on'); updateClockUI(); };
+document.getElementById('digToggle').onclick = function() { state.showDig = !state.showDig; this.classList.toggle('on'); digClock.style.display = (state.showDig && state.mode !== 'puzzle') ? 'block' : 'none'; };
+document.getElementById('liveToggle').onclick = function() { if(!state.isLive) startLive(); else stopLive(); };
 
 document.getElementById('checkBtn').onclick = () => {
-    const h = Math.floor((state.totalSeconds / 3600) % 12) || 12;
-    const minDeg = ((state.totalSeconds / 60) % 60) * 6;
-    let ok = false;
-    if (state.targetM === 0) {
-        if (h === state.targetH && (minDeg >= 345 || minDeg <= 15)) ok = true;
-    } else {
-        if (h === state.targetH && (minDeg >= 165 && minDeg <= 195)) ok = true;
-    }
+    const ok = (Math.floor(state.h) === state.targetH && Math.floor(state.m) === state.targetM);
     if(ok) { document.getElementById('winModal').style.display = 'flex'; say("完全正确！"); }
     else say("再试一次吧");
 };
 
 document.getElementById('nextBtn').onclick = resetGame;
-window.onload = () => { resetGame(); updateClockUI(); };
+window.onload = resetGame;
 </script>
 </body>
 </html>
