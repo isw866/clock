@@ -3,182 +3,160 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>趣味数学乐园 - 20以内加减法</title>
+    <title>100以内趣味数学 - 数形结合版</title>
     <style>
-        body {
-            font-family: 'Microsoft YaHei', sans-serif;
-            background-color: #f0f9ff;
-            display: flex;
-            justify-content: center;
-            align-items: center;
-            min-height: 100vh;
-            margin: 0;
-        }
-        .container {
-            background-color: white;
-            padding: 2rem;
-            border-radius: 20px;
-            box-shadow: 0 10px 25px rgba(0,0,0,0.1);
-            text-align: center;
-            width: 90%;
-            max-width: 500px;
-            border: 4px solid #4caf50;
-        }
-        h1 { color: #2c3e50; margin-bottom: 20px; font-size: 24px; }
-        .btn-group { display: flex; flex-wrap: wrap; gap: 10px; justify-content: center; margin-bottom: 20px; }
-        button {
-            padding: 10px 20px;
-            font-size: 16px;
-            cursor: pointer;
-            border: none;
-            border-radius: 10px;
-            transition: transform 0.2s;
-            background-color: #4caf50;
-            color: white;
-        }
-        button:hover { transform: scale(1.05); }
-        button:active { transform: scale(0.95); }
-        .special-btn { background-color: #ff9800; }
+        :root { --primary: #4caf50; --secondary: #ff9800; --bg: #fdf6e3; }
+        body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; background-color: var(--bg); display: flex; justify-content: center; padding: 20px; margin: 0; }
+        .container { background: white; padding: 30px; border-radius: 25px; box-shadow: 0 10px 30px rgba(0,0,0,0.1); width: 100%; max-width: 600px; border: 5px solid var(--primary); }
+        h1 { color: #2c3e50; text-align: center; font-size: 28px; }
         
-        #question-display {
-            font-size: 48px;
-            font-weight: bold;
-            color: #e91e63;
-            margin: 30px 0;
-            min-height: 60px;
-        }
-        #explanation {
-            background-color: #fff3e0;
-            padding: 15px;
-            border-radius: 10px;
-            text-align: left;
-            display: none;
-            line-height: 1.6;
-            color: #5d4037;
-        }
-        .step { color: #1976d2; font-weight: bold; }
+        /* 按钮样式 */
+        .menu { display: grid; grid-template-columns: 1fr 1fr; gap: 15px; margin-bottom: 25px; }
+        button { padding: 12px; font-size: 18px; cursor: pointer; border: none; border-radius: 15px; transition: 0.2s; background: var(--primary); color: white; font-weight: bold; }
+        button:hover { filter: brightness(1.1); transform: translateY(-2px); }
+        .btn-explain { background: var(--secondary); margin-top: 10px; display: none; width: 100%; }
+
+        /* 题目显示 */
+        #display-area { text-align: center; margin: 20px 0; padding: 20px; border-radius: 15px; background: #f0f4f8; }
+        #question { font-size: 56px; font-weight: bold; color: #333; margin: 0; }
+        
+        /* 讲解区域（数形结合） */
+        #explanation { display: none; margin-top: 20px; padding: 20px; border: 2px dashed var(--secondary); border-radius: 15px; background: #fffde7; }
+        .visual-box { display: flex; align-items: center; justify-content: center; gap: 10px; margin: 15px 0; flex-wrap: wrap; }
+        
+        /* 模拟计数棒 */
+        .stick-ten { width: 15px; height: 50px; background: #795548; border: 2px solid #5d4037; border-top: 5px solid #ffeb3b; border-radius: 3px; display: inline-block; position: relative; margin-right: 2px; }
+        .stick-ten::after { content: '10'; font-size: 9px; color: white; position: absolute; bottom: 2px; width: 100%; text-align: center; }
+        .stick-one { width: 6px; height: 40px; background: #ffeb3b; border: 1px solid #fbc02d; display: inline-block; border-radius: 2px; margin-right: 3px; }
+        
+        .op-sign { font-size: 30px; font-weight: bold; margin: 0 10px; }
+        .step-text { color: #d32f2f; font-weight: bold; margin-top: 10px; border-left: 4px solid #d32f2f; padding-left: 10px; }
     </style>
 </head>
 <body>
 
 <div class="container">
-    <h1>🍎 趣味数学乐园 🍎</h1>
-    <p>挑战20以内不进位、不借位运算</p>
-
-    <div class="btn-group">
-        <button onclick="generateTask('add')">简单加法</button>
-        <button onclick="generateTask('sub')">简单减法</button>
-        <button onclick="generateTask('mix3')">连加连减/混合</button>
-        <button class="special-btn" onclick="generateRandomWithLogic()">随机一题并讲解</button>
+    <h1>🔢 100以内口算乐园</h1>
+    
+    <div class="menu">
+        <button onclick="ask('add')">两位数加法</button>
+        <button onclick="ask('sub')">两位数减法</button>
+        <button onclick="ask('mix')">加减混合</button>
+        <button onclick="ask('chain')">三个数连算</button>
     </div>
 
-    <div id="question-display">准备好了吗？</div>
-    
+    <div id="display-area">
+        <p id="question">选个挑战吧！</p>
+        <button id="solve-btn" class="btn-explain" onclick="showExplanation()">💡 我要看解析</button>
+    </div>
+
     <div id="explanation">
-        <h3>💡 解题思路：</h3>
-        <div id="explain-content"></div>
+        <div id="visual-steps"></div>
+        <div id="text-steps"></div>
     </div>
 </div>
 
 <script>
-    // 生成核心逻辑：不进位、不借位
-    function getRandom(min, max) {
-        return Math.floor(Math.random() * (max - min + 1)) + min;
-    }
+    let currentData = null;
 
-    // 生成两个数的加法（不进位）
-    function getSimpleAdd() {
-        let a = getRandom(0, 19);
-        let b = getRandom(0, 19 - a);
-        while ((a % 10) + (b % 10) >= 10) { // 确保个位也不进位
-            a = getRandom(0, 19);
-            b = getRandom(0, 19 - a);
+    // 核心逻辑：生成不进位/不借位的数据
+    function generateNoCarryAdd(max = 100) {
+        let a = Math.floor(Math.random() * 90) + 5;
+        let b = Math.floor(Math.random() * (max - a));
+        // 检查个位是否进位
+        while ((a % 10) + (b % 10) >= 10) {
+            b = Math.floor(Math.random() * (max - a));
         }
         return [a, b];
     }
 
-    // 生成两个数的减法（不借位）
-    function getSimpleSub() {
-        let a = getRandom(0, 20);
-        let b = getRandom(0, a);
-        while ((a % 10) < (b % 10)) { // 确保个位不借位
-            a = getRandom(0, 20);
-            b = getRandom(0, a);
+    function generateNoBorrowSub() {
+        let a = Math.floor(Math.random() * 80) + 10;
+        let b = Math.floor(Math.random() * a);
+        // 检查个位是否需要借位
+        while ((a % 10) < (b % 10)) {
+            b = Math.floor(Math.random() * a);
         }
         return [a, b];
     }
 
-    const display = document.getElementById('question-display');
-    const explainBox = document.getElementById('explanation');
-    const explainContent = document.getElementById('explain-content');
+    function drawSticks(num) {
+        const tens = Math.floor(num / 10);
+        const ones = num % 10;
+        let html = '<div style="display:inline-block; border:1px solid #ddd; padding:5px; border-radius:5px;">';
+        for(let i=0; i<tens; i++) html += '<div class="stick-ten"></div>';
+        for(let i=0; i<ones; i++) html += '<div class="stick-one"></div>';
+        html += `<br><span style="font-size:12px">${num}</span></div>`;
+        return html;
+    }
 
-    function generateTask(type) {
-        explainBox.style.display = 'none';
-        let q = "";
+    function ask(type) {
+        document.getElementById('explanation').style.display = 'none';
+        document.getElementById('solve-btn').style.display = 'block';
+        let qText = "";
         
         if (type === 'add') {
-            const [a, b] = getSimpleAdd();
-            q = `${a} + ${b} = ?`;
+            const [a, b] = generateNoCarryAdd();
+            currentData = { type: 'add', nums: [a, b], res: a + b };
+            qText = `${a} + ${b} = ?`;
         } else if (type === 'sub') {
-            const [a, b] = getSimpleSub();
-            q = `${a} - ${b} = ?`;
-        } else if (type === 'mix3') {
-            // 三个数混合运算示例
-            const [a, b] = getSimpleAdd();
+            const [a, b] = generateNoBorrowSub();
+            currentData = { type: 'sub', nums: [a, b], res: a - b };
+            qText = `${a} - ${b} = ?`;
+        } else if (type === 'mix' || type === 'chain') {
+            const [a, b] = generateNoCarryAdd(70);
             const res1 = a + b;
-            if (Math.random() > 0.5) {
-                let c = getRandom(0, 20 - res1);
-                while(((res1 % 10) + (c % 10)) >= 10) { c = getRandom(0, 20 - res1); }
-                q = `${a} + ${b} + ${c} = ?`;
+            const isAdd = Math.random() > 0.5;
+            if (isAdd) {
+                let c = Math.floor(Math.random() * (99 - res1));
+                while((res1 % 10) + (c % 10) >= 10) c = Math.floor(Math.random() * (99 - res1));
+                currentData = { type: 'mixAdd', nums: [a, b, c], res: res1 + c };
+                qText = `${a} + ${b} + ${c} = ?`;
             } else {
-                let c = getRandom(0, res1);
-                while((res1 % 10) < (c % 10)) { c = getRandom(0, res1); }
-                q = `${a} + ${b} - ${c} = ?`;
+                let c = Math.floor(Math.random() * res1);
+                while((res1 % 10) < (c % 10)) c = Math.floor(Math.random() * res1);
+                currentData = { type: 'mixSub', nums: [a, b, c], res: res1 - c };
+                qText = `${a} + ${b} - ${c} = ?`;
             }
         }
-        display.innerText = q;
+        document.getElementById('question').innerText = qText;
     }
 
-    function generateRandomWithLogic() {
-        explainBox.style.display = 'block';
-        const type = getRandom(1, 3);
-        let steps = "";
-        let q = "";
+    function showExplanation() {
+        const exp = document.getElementById('explanation');
+        const vSteps = document.getElementById('visual-steps');
+        const tSteps = document.getElementById('text-steps');
+        exp.style.display = 'block';
+        
+        let vHtml = "";
+        let tHtml = "";
 
-        if (type === 1) { // 连加
-            const [a, b] = getSimpleAdd();
+        if (currentData.type === 'add') {
+            vHtml = `<div class="visual-box">${drawSticks(currentData.nums[0])} <span class="op-sign">+</span> ${drawSticks(currentData.nums[1])} <span class="op-sign">=</span> ${drawSticks(currentData.res)}</div>`;
+            tHtml = `<div class="step-text">分步口诀：</div>
+                     1. 先算个位：${currentData.nums[0]%10} + ${currentData.nums[1]%10} = ${currentData.res%10}<br>
+                     2. 再算十位：${Math.floor(currentData.nums[0]/10)}0 + ${Math.floor(currentData.nums[1]/10)}0 = ${Math.floor(currentData.res/10)}0<br>
+                     3. 合起来就是 <b>${currentData.res}</b></div>`;
+        } else if (currentData.type === 'sub') {
+            vHtml = `<div class="visual-box">${drawSticks(currentData.nums[0])} <span class="op-sign">-</span> ${drawSticks(currentData.nums[1])} <span class="op-sign">=</span> ${drawSticks(currentData.res)}</div>`;
+            tHtml = `<div class="step-text">减法小妙招：</div>
+                     从大数里拿掉小数：<br>
+                     1. 个位拿掉：${currentData.nums[0]%10} - ${currentData.nums[1]%10} = ${currentData.res%10}<br>
+                     2. 十位拿掉：${Math.floor(currentData.nums[0]/10)}0 - ${Math.floor(currentData.nums[1]/10)}0 = ${Math.floor(currentData.res/10)}0<br>
+                     3. 剩下 <b>${currentData.res}</b></div>`;
+        } else {
+            const [a, b, c] = currentData.nums;
             const res1 = a + b;
-            let c = getRandom(0, 20 - res1);
-            while(((res1 % 10) + (c % 10)) >= 10) { c = getRandom(0, 20 - res1); }
-            
-            q = `${a} + ${b} + ${c} = ?`;
-            steps = `<p class="step">第一步：</p> 先算前面的 ${a} + ${b} = ${res1}。<br>
-                     <p class="step">第二步：</p> 再算 ${res1} + ${c} = ${res1 + c}。<br>
-                     <p class="step">结果：</p> 所以答案是 ${res1 + c}！`;
-        } else if (type === 2) { // 连减
-            const [a, b] = getSimpleSub();
-            const res1 = a - b;
-            let c = getRandom(0, res1);
-            while((res1 % 10) < (c % 10)) { c = getRandom(0, res1); }
-
-            q = `${a} - ${b} - ${c} = ?`;
-            steps = `<p class="step">第一步：</p> 先算前面的 ${a} - ${b} = ${res1}。<br>
-                     <p class="step">第二步：</p> 再算 ${res1} - ${c} = ${res1 - c}。<br>
-                     <p class="step">结果：</p> 所以答案是 ${res1 - c}！`;
-        } else { // 混合
-            const [a, b] = getSimpleAdd();
-            const res1 = a + b;
-            let c = getRandom(0, res1);
-            while((res1 % 10) < (c % 10)) { c = getRandom(0, res1); }
-
-            q = `${a} + ${b} - ${c} = ?`;
-            steps = `<p class="step">第一步：</p> 先算加法 ${a} + ${b} = ${res1}。<br>
-                     <p class="step">第二步：</p> 再算减法 ${res1} - ${c} = ${res1 - c}。<br>
-                     <p class="step">结果：</p> 所以答案是 ${res1 - c}！`;
+            const op2 = currentData.type === 'mixAdd' ? '+' : '-';
+            vHtml = `<div class="visual-box">${drawSticks(a)} + ${drawSticks(b)} → ${drawSticks(res1)}</div>
+                     <div class="visual-box">${drawSticks(res1)} ${op2} ${drawSticks(c)} = ${drawSticks(currentData.res)}</div>`;
+            tHtml = `<div class="step-text">连算秘籍（从左往右算）：</div>
+                     1. 先算前面两项：${a} + ${b} = ${res1}<br>
+                     2. 再算最后一项：${res1} ${op2} ${c} = <b>${currentData.res}</b>`;
         }
-
-        display.innerText = q;
-        explainContent.innerHTML = steps;
+        
+        vSteps.innerHTML = vHtml;
+        tSteps.innerHTML = tHtml;
     }
 </script>
 
