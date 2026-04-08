@@ -1,0 +1,186 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>趣味数学乐园 - 20以内加减法</title>
+    <style>
+        body {
+            font-family: 'Microsoft YaHei', sans-serif;
+            background-color: #f0f9ff;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
+            margin: 0;
+        }
+        .container {
+            background-color: white;
+            padding: 2rem;
+            border-radius: 20px;
+            box-shadow: 0 10px 25px rgba(0,0,0,0.1);
+            text-align: center;
+            width: 90%;
+            max-width: 500px;
+            border: 4px solid #4caf50;
+        }
+        h1 { color: #2c3e50; margin-bottom: 20px; font-size: 24px; }
+        .btn-group { display: flex; flex-wrap: wrap; gap: 10px; justify-content: center; margin-bottom: 20px; }
+        button {
+            padding: 10px 20px;
+            font-size: 16px;
+            cursor: pointer;
+            border: none;
+            border-radius: 10px;
+            transition: transform 0.2s;
+            background-color: #4caf50;
+            color: white;
+        }
+        button:hover { transform: scale(1.05); }
+        button:active { transform: scale(0.95); }
+        .special-btn { background-color: #ff9800; }
+        
+        #question-display {
+            font-size: 48px;
+            font-weight: bold;
+            color: #e91e63;
+            margin: 30px 0;
+            min-height: 60px;
+        }
+        #explanation {
+            background-color: #fff3e0;
+            padding: 15px;
+            border-radius: 10px;
+            text-align: left;
+            display: none;
+            line-height: 1.6;
+            color: #5d4037;
+        }
+        .step { color: #1976d2; font-weight: bold; }
+    </style>
+</head>
+<body>
+
+<div class="container">
+    <h1>🍎 趣味数学乐园 🍎</h1>
+    <p>挑战20以内不进位、不借位运算</p>
+
+    <div class="btn-group">
+        <button onclick="generateTask('add')">简单加法</button>
+        <button onclick="generateTask('sub')">简单减法</button>
+        <button onclick="generateTask('mix3')">连加连减/混合</button>
+        <button class="special-btn" onclick="generateRandomWithLogic()">随机一题并讲解</button>
+    </div>
+
+    <div id="question-display">准备好了吗？</div>
+    
+    <div id="explanation">
+        <h3>💡 解题思路：</h3>
+        <div id="explain-content"></div>
+    </div>
+</div>
+
+<script>
+    // 生成核心逻辑：不进位、不借位
+    function getRandom(min, max) {
+        return Math.floor(Math.random() * (max - min + 1)) + min;
+    }
+
+    // 生成两个数的加法（不进位）
+    function getSimpleAdd() {
+        let a = getRandom(0, 19);
+        let b = getRandom(0, 19 - a);
+        while ((a % 10) + (b % 10) >= 10) { // 确保个位也不进位
+            a = getRandom(0, 19);
+            b = getRandom(0, 19 - a);
+        }
+        return [a, b];
+    }
+
+    // 生成两个数的减法（不借位）
+    function getSimpleSub() {
+        let a = getRandom(0, 20);
+        let b = getRandom(0, a);
+        while ((a % 10) < (b % 10)) { // 确保个位不借位
+            a = getRandom(0, 20);
+            b = getRandom(0, a);
+        }
+        return [a, b];
+    }
+
+    const display = document.getElementById('question-display');
+    const explainBox = document.getElementById('explanation');
+    const explainContent = document.getElementById('explain-content');
+
+    function generateTask(type) {
+        explainBox.style.display = 'none';
+        let q = "";
+        
+        if (type === 'add') {
+            const [a, b] = getSimpleAdd();
+            q = `${a} + ${b} = ?`;
+        } else if (type === 'sub') {
+            const [a, b] = getSimpleSub();
+            q = `${a} - ${b} = ?`;
+        } else if (type === 'mix3') {
+            // 三个数混合运算示例
+            const [a, b] = getSimpleAdd();
+            const res1 = a + b;
+            if (Math.random() > 0.5) {
+                let c = getRandom(0, 20 - res1);
+                while(((res1 % 10) + (c % 10)) >= 10) { c = getRandom(0, 20 - res1); }
+                q = `${a} + ${b} + ${c} = ?`;
+            } else {
+                let c = getRandom(0, res1);
+                while((res1 % 10) < (c % 10)) { c = getRandom(0, res1); }
+                q = `${a} + ${b} - ${c} = ?`;
+            }
+        }
+        display.innerText = q;
+    }
+
+    function generateRandomWithLogic() {
+        explainBox.style.display = 'block';
+        const type = getRandom(1, 3);
+        let steps = "";
+        let q = "";
+
+        if (type === 1) { // 连加
+            const [a, b] = getSimpleAdd();
+            const res1 = a + b;
+            let c = getRandom(0, 20 - res1);
+            while(((res1 % 10) + (c % 10)) >= 10) { c = getRandom(0, 20 - res1); }
+            
+            q = `${a} + ${b} + ${c} = ?`;
+            steps = `<p class="step">第一步：</p> 先算前面的 ${a} + ${b} = ${res1}。<br>
+                     <p class="step">第二步：</p> 再算 ${res1} + ${c} = ${res1 + c}。<br>
+                     <p class="step">结果：</p> 所以答案是 ${res1 + c}！`;
+        } else if (type === 2) { // 连减
+            const [a, b] = getSimpleSub();
+            const res1 = a - b;
+            let c = getRandom(0, res1);
+            while((res1 % 10) < (c % 10)) { c = getRandom(0, res1); }
+
+            q = `${a} - ${b} - ${c} = ?`;
+            steps = `<p class="step">第一步：</p> 先算前面的 ${a} - ${b} = ${res1}。<br>
+                     <p class="step">第二步：</p> 再算 ${res1} - ${c} = ${res1 - c}。<br>
+                     <p class="step">结果：</p> 所以答案是 ${res1 - c}！`;
+        } else { // 混合
+            const [a, b] = getSimpleAdd();
+            const res1 = a + b;
+            let c = getRandom(0, res1);
+            while((res1 % 10) < (c % 10)) { c = getRandom(0, res1); }
+
+            q = `${a} + ${b} - ${c} = ?`;
+            steps = `<p class="step">第一步：</p> 先算加法 ${a} + ${b} = ${res1}。<br>
+                     <p class="step">第二步：</p> 再算减法 ${res1} - ${c} = ${res1 - c}。<br>
+                     <p class="step">结果：</p> 所以答案是 ${res1 - c}！`;
+        }
+
+        display.innerText = q;
+        explainContent.innerHTML = steps;
+    }
+</script>
+
+</body>
+</html>
