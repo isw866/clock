@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>智能数学乐园 - 完整版</title>
+    <title>智能数学乐园 - 逻辑优化版</title>
     <style>
         :root {
             --primary: #4caf50;
@@ -17,13 +17,11 @@
         h1 { text-align: center; color: #333; margin-bottom: 10px; }
         .section-title { font-size: 14px; color: #666; margin-bottom: 8px; font-weight: bold; }
 
-        /* 范围选择器 */
         .range-selector { display: grid; grid-template-columns: repeat(5, 1fr); gap: 8px; margin-bottom: 20px; background: #eee; padding: 10px; border-radius: 12px; }
         .range-btn { padding: 8px; font-size: 14px; border: 2px solid transparent; background: white; border-radius: 8px; cursor: pointer; transition: 0.2s; }
         .range-btn:hover { background: #e8f5e9; }
         .range-btn.active { background: var(--primary); color: white; border-color: #388e3c; box-shadow: 0 4px 10px rgba(76,175,80,0.3); }
 
-        /* 类型按钮 */
         .type-selector { display: flex; gap: 10px; margin-bottom: 20px; justify-content: center; }
         .type-btn { flex: 1; padding: 12px; font-size: 16px; border: 3px solid transparent; border-radius: 10px; color: white; cursor: pointer; font-weight: bold; opacity: 0.7; }
         .type-btn.active { opacity: 1; border-color: rgba(0,0,0,0.2); transform: scale(1.05); }
@@ -31,18 +29,15 @@
         .sub-btn { background: #ef5350; }
         .mix-btn { background: #5c6bc0; }
 
-        /* 练习模式按钮 */
         .quiz-action-btn { width: 100%; padding: 15px; background: #2e7d32; color: white; border: none; border-radius: 12px; font-size: 18px; font-weight: bold; cursor: pointer; margin-bottom: 20px; box-shadow: 0 4px 15px rgba(46,125,50,0.2); transition: 0.3s; }
         .quiz-action-btn:hover { background: #1b5e20; transform: translateY(-2px); }
 
-        /* 展示区 */
         #display-card { text-align: center; background: #fffde7; padding: 40px; border-radius: 15px; border: 2px dashed #ffd54f; margin-bottom: 20px; min-height: 200px; display: flex; flex-direction: column; justify-content: center; align-items: center; }
         #question-text { font-size: 64px; font-weight: bold; color: #2c3e50; margin: 0; }
         .hint-text { font-size: 14px; color: #999; margin-top: 15px; }
 
         #explain-trigger { background: var(--secondary); color: white; padding: 10px 25px; border: none; border-radius: 20px; font-size: 18px; cursor: pointer; display: none; margin-top: 20px; }
 
-        /* 讲解区 */
         #explanation { display: none; margin-top: 20px; padding: 20px; border-radius: 15px; background: white; border: 2px solid #ddd; animation: fadeIn 0.5s; }
         @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
         
@@ -53,7 +48,6 @@
         .vis-num { display: block; font-size: 12px; font-weight: bold; color: #555; }
         .symbol { font-size: 24px; font-weight: bold; margin: 0 10px; color: #ff5722; }
 
-        /* 练习页（新页面层） */
         #quiz-layer { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: white; z-index: 999; overflow-y: auto; padding: 40px 20px; box-sizing: border-box; }
         .quiz-header { display: flex; justify-content: space-between; align-items: center; max-width: 1000px; margin: 0 auto 30px; border-bottom: 3px solid var(--primary); padding-bottom: 10px; }
         .quiz-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 15px; max-width: 1000px; margin: 0 auto; }
@@ -103,7 +97,6 @@
     let currentType = 'add';
     let currentData = null;
 
-    // 初始化范围按钮
     const rangeBox = document.getElementById('range-box');
     for (let i = 10; i <= 100; i += 10) {
         const btn = document.createElement('button');
@@ -126,7 +119,6 @@
         generate();
     }
 
-    // 核心算法：不进位/不借位
     function getAdd(max) {
         let a, b;
         do {
@@ -140,30 +132,24 @@
         let a, b;
         do {
             a = Math.floor(Math.random() * (max - 1)) + 1;
-            b = Math.floor(Math.random() * a);
+            b = Math.floor(Math.random() * a) + 1; // +1 确保 b 不为 0，避免 X - 0
         } while ((a % 10) < (b % 10));
         return [a, b];
     }
 
-    // 生成随机混合题目字符串
-    function getAnyExpr(max) {
-        const r = Math.random();
-        if (r < 0.35) {
-            const [a, b] = getAdd(max); return `${a} + ${b} =`;
-        } else if (r < 0.7) {
-            const [a, b] = getSub(max); return `${a} - ${b} =`;
+    function getMixExpr(max) {
+        const [a, b] = getAdd(max - 5);
+        const r1 = a + b;
+        if (Math.random() > 0.5) {
+            // 连加
+            let c = Math.floor(Math.random() * (max - r1));
+            while((r1 % 10) + (c % 10) >= 10) c = Math.floor(Math.random() * 5);
+            return `${a} + ${b} + ${c} =`;
         } else {
-            const [a, b] = getAdd(max - 5);
-            const r1 = a + b;
-            if (Math.random() > 0.5) {
-                let c = Math.floor(Math.random() * (max - r1));
-                while((r1 % 10) + (c % 10) >= 10) c = Math.floor(Math.random() * 5);
-                return `${a} + ${b} + ${c} =`;
-            } else {
-                let c = Math.floor(Math.random() * r1);
-                while((r1 % 10) < (c % 10)) c = Math.floor(Math.random() * r1);
-                return `${a} + ${b} - ${c} =`;
-            }
+            // 加减混合，确保减数不为 0
+            let c = Math.floor(Math.random() * r1) + 1; 
+            while((r1 % 10) < (c % 10)) c = Math.floor(Math.random() * r1) + 1;
+            return `${a} + ${b} - ${c} =`;
         }
     }
 
@@ -180,23 +166,31 @@
             currentData = { type: 'sub', nums: [a, b], res: a - b };
             q = `${a} - ${b} = ?`;
         } else {
-            const expr = getAnyExpr(currentLimit);
+            const expr = getMixExpr(currentLimit);
             q = expr + " ?";
             currentData = { type: 'mix', text: expr };
         }
         document.getElementById('question-text').innerText = q;
     }
 
-    // 练习页逻辑
     function showQuizPage() {
         const list = document.getElementById('quiz-list');
         list.innerHTML = "";
-        document.getElementById('quiz-title-text').innerText = `${currentLimit}以内 100题随机挑战`;
+        document.getElementById('quiz-title-text').innerText = `${currentLimit}以内 综合练习(混合80%)`;
         
         for (let i = 0; i < 100; i++) {
             const div = document.createElement('div');
             div.className = 'quiz-cell';
-            div.innerText = getAnyExpr(currentLimit);
+            const dice = Math.random();
+            if (dice < 0.8) { // 80% 混合运算
+                div.innerText = getMixExpr(currentLimit);
+            } else if (dice < 0.9) { // 10% 单加
+                const [a, b] = getAdd(currentLimit);
+                div.innerText = `${a} + ${b} =`;
+            } else { // 10% 单减
+                const [a, b] = getSub(currentLimit);
+                div.innerText = `${a} - ${b} =`;
+            }
             list.appendChild(div);
         }
         document.getElementById('quiz-layer').style.display = 'block';
@@ -206,7 +200,6 @@
         document.getElementById('quiz-layer').style.display = 'none';
     }
 
-    // 讲解逻辑保持原样
     function drawSticks(n) {
         const tens = Math.floor(n / 10);
         const ones = n % 10;
