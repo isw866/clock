@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>智能数学乐园 - 逻辑优化版</title>
+    <title>智能数学乐园 - 纯非零精简版</title>
     <style>
         :root {
             --primary: #4caf50;
@@ -119,36 +119,39 @@
         generate();
     }
 
+    // 核心算法：加法不进位 且 避免 +0
     function getAdd(max) {
         let a, b;
         do {
-            a = Math.floor(Math.random() * (max - 1)) + 1;
-            b = Math.floor(Math.random() * (max - a));
+            a = Math.floor(Math.random() * (max - 2)) + 1; // 留出至少1的空间给b
+            b = Math.floor(Math.random() * (max - a - 1)) + 1; // 强制 +1 避免 +0
         } while ((a % 10) + (b % 10) >= 10);
         return [a, b];
     }
 
+    // 核心算法：减法不借位 且 避免 -0
     function getSub(max) {
         let a, b;
         do {
-            a = Math.floor(Math.random() * (max - 1)) + 1;
-            b = Math.floor(Math.random() * a) + 1; // +1 确保 b 不为 0，避免 X - 0
+            a = Math.floor(Math.random() * (max - 2)) + 2; // 被减数至少为2
+            b = Math.floor(Math.random() * (a - 1)) + 1; // 强制 +1 避免 -0
         } while ((a % 10) < (b % 10));
         return [a, b];
     }
 
+    // 混合运算：80% 占比 且 避免 +0/-0
     function getMixExpr(max) {
         const [a, b] = getAdd(max - 5);
         const r1 = a + b;
         if (Math.random() > 0.5) {
-            // 连加
-            let c = Math.floor(Math.random() * (max - r1));
-            while((r1 % 10) + (c % 10) >= 10) c = Math.floor(Math.random() * 5);
+            // 连加：避免 +0
+            let c = Math.floor(Math.random() * (max - r1 - 1)) + 1;
+            while((r1 % 10) + (c % 10) >= 10) c = Math.floor(Math.random() * 5) + 1;
             return `${a} + ${b} + ${c} =`;
         } else {
-            // 加减混合，确保减数不为 0
-            let c = Math.floor(Math.random() * r1) + 1; 
-            while((r1 % 10) < (c % 10)) c = Math.floor(Math.random() * r1) + 1;
+            // 加减混合：避免 -0
+            let c = Math.floor(Math.random() * (r1 - 1)) + 1; 
+            while((r1 % 10) < (c % 10)) c = Math.floor(Math.random() * (r1 - 1)) + 1;
             return `${a} + ${b} - ${c} =`;
         }
     }
@@ -176,7 +179,7 @@
     function showQuizPage() {
         const list = document.getElementById('quiz-list');
         list.innerHTML = "";
-        document.getElementById('quiz-title-text').innerText = `${currentLimit}以内 综合练习(混合80%)`;
+        document.getElementById('quiz-title-text').innerText = `${currentLimit}以内 综合练习(纯非零)`;
         
         for (let i = 0; i < 100; i++) {
             const div = document.createElement('div');
