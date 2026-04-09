@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>趣味数学进阶版 - 自选范围</title>
+    <title>趣味数学进阶版 - 智能出题</title>
     <style>
         :root {
             --primary: #4caf50;
@@ -17,28 +17,31 @@
         h1 { text-align: center; color: #333; margin-bottom: 10px; }
         .section-title { font-size: 14px; color: #666; margin-bottom: 8px; font-weight: bold; }
 
-        /* 范围选择器样式 */
+        /* 范围选择器 */
         .range-selector { display: grid; grid-template-columns: repeat(5, 1fr); gap: 8px; margin-bottom: 20px; background: #eee; padding: 10px; border-radius: 12px; }
         .range-btn { padding: 8px; font-size: 14px; border: 2px solid transparent; background: white; border-radius: 8px; cursor: pointer; transition: 0.2s; }
         .range-btn:hover { background: #e8f5e9; }
-        .range-btn.active { background: var(--primary); color: white; border-color: #388e3c; }
+        .range-btn.active { background: var(--primary); color: white; border-color: #388e3c; box-shadow: 0 4px 10px rgba(76,175,80,0.3); }
 
-        /* 功能按钮样式 */
+        /* 类型按钮 */
         .type-selector { display: flex; gap: 10px; margin-bottom: 20px; justify-content: center; }
-        .type-btn { flex: 1; padding: 12px; font-size: 16px; border: none; border-radius: 10px; color: white; cursor: pointer; font-weight: bold; }
+        .type-btn { flex: 1; padding: 12px; font-size: 16px; border: 3px solid transparent; border-radius: 10px; color: white; cursor: pointer; font-weight: bold; opacity: 0.7; }
+        .type-btn.active { opacity: 1; border-color: rgba(0,0,0,0.2); transform: scale(1.05); }
         .add-btn { background: #66bb6a; }
         .sub-btn { background: #ef5350; }
         .mix-btn { background: #5c6bc0; }
 
-        /* 题目展示 */
-        #display-card { text-align: center; background: #fffde7; padding: 40px; border-radius: 15px; border: 2px dashed #ffd54f; margin-bottom: 20px; position: relative; }
-        #question-text { font-size: 60px; font-weight: bold; color: #2c3e50; margin: 0; }
-        .hint-text { font-size: 14px; color: #999; margin-top: 10px; }
+        /* 展示区 */
+        #display-card { text-align: center; background: #fffde7; padding: 40px; border-radius: 15px; border: 2px dashed #ffd54f; margin-bottom: 20px; min-height: 200px; display: flex; flex-direction: column; justify-content: center; align-items: center; }
+        #question-text { font-size: 64px; font-weight: bold; color: #2c3e50; margin: 0; }
+        .hint-text { font-size: 14px; color: #999; margin-top: 15px; }
 
-        #explain-trigger { background: var(--secondary); color: white; padding: 10px 25px; border: none; border-radius: 20px; font-size: 18px; cursor: pointer; display: none; margin: 0 auto; }
+        #explain-trigger { background: var(--secondary); color: white; padding: 10px 25px; border: none; border-radius: 20px; font-size: 18px; cursor: pointer; display: none; margin-top: 20px; }
 
-        /* 讲解区域 */
-        #explanation { display: none; margin-top: 20px; padding: 20px; border-radius: 15px; background: white; border: 2px solid #ddd; }
+        /* 讲解区 */
+        #explanation { display: none; margin-top: 20px; padding: 20px; border-radius: 15px; background: white; border: 2px solid #ddd; animation: fadeIn 0.5s; }
+        @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
+        
         .stick-bundle { display: inline-flex; flex-wrap: wrap; max-width: 120px; border: 1px solid #ddd; padding: 5px; border-radius: 5px; background: #fafafa; vertical-align: middle; }
         .stick-ten { width: 10px; height: 35px; background: #8d6e63; border: 1px solid #5d4037; border-top: 3px solid #fdd835; margin: 1px; border-radius: 2px; }
         .stick-one { width: 4px; height: 30px; background: #fdd835; border: 1px solid #fbc02d; margin: 1px; border-radius: 1px; }
@@ -50,36 +53,36 @@
 <body>
 
 <div class="container">
-    <h1>🎒 快乐数学关卡</h1>
+    <h1>🍎 智能数学乐园</h1>
     
-    <div class="section-title">第一步：选择难度范围</div>
-    <div class="range-selector" id="range-box">
-        </div>
+    <div class="section-title">第一步：选择难度 (点击即出题)</div>
+    <div class="range-selector" id="range-box"></div>
 
-    <div class="section-title">第二步：选择题目类型</div>
+    <div class="section-title">第二步：选择类型</div>
     <div class="type-selector">
-        <button class="type-btn add-btn" onclick="generate('add')">加法练习</button>
-        <button class="type-btn sub-btn" onclick="generate('sub')">减法练习</button>
-        <button class="type-btn mix-btn" onclick="generate('mix')">混合连算</button>
+        <button id="btn-add" class="type-btn add-btn active" onclick="changeType('add')">加法练习</button>
+        <button id="btn-sub" class="type-btn sub-btn" onclick="changeType('sub')">减法练习</button>
+        <button id="btn-mix" class="type-btn mix-btn" onclick="changeType('mix')">混合连算</button>
     </div>
 
     <div id="display-card">
-        <p id="question-text">请先选范围</p>
-        <p class="hint-text" id="range-hint">当前选择：未开始</p>
+        <p id="question-text">准备好了吗？</p>
+        <p class="hint-text" id="range-hint">当前选择：20以内</p>
         <button id="explain-trigger" onclick="toggleExplain()">💡 查看解题思路</button>
     </div>
 
     <div id="explanation">
         <div id="vis-area" style="text-align:center; margin-bottom:15px;"></div>
-        <div id="text-area" style="line-height:1.8; color:#444; border-top:1px solid #eee; pt:10px;"></div>
+        <div id="text-area" style="line-height:1.8; color:#444; border-top:1px solid #eee; padding-top:10px;"></div>
     </div>
 </div>
 
 <script>
     let currentLimit = 20;
+    let currentType = 'add';
     let currentData = null;
 
-    // 初始化范围选择按钮
+    // 初始化按钮
     const rangeBox = document.getElementById('range-box');
     for (let i = 10; i <= 100; i += 10) {
         const btn = document.createElement('button');
@@ -90,11 +93,18 @@
             this.classList.add('active');
             currentLimit = i;
             document.getElementById('range-hint').innerText = `当前选择：${i}以内`;
+            generate(); // 核心优化：点击难度立即生成新题
         };
         rangeBox.appendChild(btn);
     }
 
-    // 生成不进位加法
+    function changeType(type) {
+        currentType = type;
+        document.querySelectorAll('.type-btn').forEach(b => b.classList.remove('active'));
+        document.getElementById(`btn-${type}`).classList.add('active');
+        generate();
+    }
+
     function getAdd(max) {
         let a, b;
         do {
@@ -104,7 +114,6 @@
         return [a, b];
     }
 
-    // 生成不借位减法
     function getSub(max) {
         let a, b;
         do {
@@ -114,7 +123,8 @@
         return [a, b];
     }
 
-    function generate(type) {
+    function generate() {
+        const type = currentType;
         document.getElementById('explanation').style.display = 'none';
         document.getElementById('explain-trigger').style.display = 'block';
         let q = "";
@@ -128,7 +138,6 @@
             currentData = { type, nums: [a, b], res: a - b };
             q = `${a} - ${b} = ?`;
         } else {
-            // 混合：先加后减 或 连加
             const [a, b] = getAdd(currentLimit - 5);
             const r1 = a + b;
             if (Math.random() > 0.5) {
@@ -152,7 +161,7 @@
         let html = '<div class="vis-item"><div class="stick-bundle">';
         for(let i=0; i<tens; i++) html += '<div class="stick-ten"></div>';
         for(let i=0; i<ones; i++) html += '<div class="stick-one"></div>';
-        if(n === 0) html += '<span style="color:#ccc">空</span>';
+        if(n === 0 && tens === 0 && ones === 0) html += '<span style="color:#ccc; font-size:10px;">0</span>';
         html += `</div><span class="vis-num">${n}</span></div>`;
         return html;
     }
@@ -169,24 +178,26 @@
         if (currentData.type === 'add' || currentData.type === 'sub') {
             const sym = currentData.type === 'add' ? '+' : '-';
             vHtml = drawSticks(nums[0]) + `<span class="symbol">${sym}</span>` + drawSticks(nums[1]) + `<span class="symbol">=</span>` + drawSticks(currentData.res);
-            tHtml = `<b>💡 老师悄悄话：</b><br>
-                    • 先看个位：${currentData.type === 'add' ? (nums[0]%10 +'+'+ nums[1]%10 +'='+ currentData.res%10) : (nums[0]%10 +'-'+ nums[1]%10 +'='+ currentData.res%10)}<br>
-                    • 再看十位：${Math.floor(nums[0]/10)}0 ${sym} ${Math.floor(nums[1]/10)}0 = ${Math.floor(currentData.res/10)}0<br>
-                    • 合起来就是 <strong>${currentData.res}</strong>`;
+            tHtml = `<b>💡 解题思路：</b><br>
+                    • <b>看个位：</b>${nums[0]%10} ${sym} ${nums[1]%10} = ${currentData.res%10}<br>
+                    • <b>看十位：</b>${Math.floor(nums[0]/10)}0 ${sym} ${Math.floor(nums[1]/10)}0 = ${Math.floor(currentData.res/10)}0<br>
+                    • <b>合起来：</b>就是 <strong>${currentData.res}</strong>`;
         } else {
             const sym2 = currentData.type === 'mixAdd' ? '+' : '-';
-            const r1 = currentData.type === 'mixAdd' ? nums[0]+nums[1] : nums[0]+nums[1]; // 混合逻辑里第一步都是加
+            const r1 = nums[0] + nums[1];
             vHtml = `<div>${drawSticks(nums[0])} + ${drawSticks(nums[1])} = ${drawSticks(r1)}</div>
                      <div style="margin-top:10px;">${drawSticks(r1)} ${sym2} ${drawSticks(nums[2])} = ${drawSticks(currentData.res)}</div>`;
-            tHtml = `<b>💡 连算小秘籍：</b><br>
+            tHtml = `<b>💡 连算步骤：</b><br>
                     1. 先算前两个：${nums[0]} + ${nums[1]} = ${r1}<br>
-                    2. 用结果再算第三个：${r1} ${sym2} ${nums[2]} = <strong>${currentData.res}</strong>`;
+                    2. 再算第三个：${r1} ${sym2} ${nums[2]} = <strong>${currentData.res}</strong>`;
         }
         
         vis.innerHTML = vHtml;
         txt.innerHTML = tHtml;
-        exp.scrollIntoView({ behavior: 'smooth' });
     }
+
+    // 页面加载完成自动出一道题
+    window.onload = generate;
 </script>
 
 </body>
