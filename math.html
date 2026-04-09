@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>智能数学乐园 - 纯非零精简版</title>
+    <title>智能数学乐园 - 修复流畅版</title>
     <style>
         :root {
             --primary: #4caf50;
@@ -119,41 +119,50 @@
         generate();
     }
 
-    // 核心算法：加法不进位 且 避免 +0
+    // 修复：增加安全阀门，防止小数字范围下的死循环
     function getAdd(max) {
-        let a, b;
+        let a, b, tries = 0;
         do {
-            a = Math.floor(Math.random() * (max - 2)) + 1; // 留出至少1的空间给b
-            b = Math.floor(Math.random() * (max - a - 1)) + 1; // 强制 +1 避免 +0
-        } while ((a % 10) + (b % 10) >= 10);
+            tries++;
+            a = Math.floor(Math.random() * (max - 1)) + 1;
+            b = Math.floor(Math.random() * (max - a)) + 1;
+            if (tries > 100) break; // 安全跳出
+        } while ((a % 10) + (b % 10) >= 10 || b === 0);
         return [a, b];
     }
 
-    // 核心算法：减法不借位 且 避免 -0
     function getSub(max) {
-        let a, b;
+        let a, b, tries = 0;
         do {
-            a = Math.floor(Math.random() * (max - 2)) + 2; // 被减数至少为2
-            b = Math.floor(Math.random() * (a - 1)) + 1; // 强制 +1 避免 -0
-        } while ((a % 10) < (b % 10));
+            tries++;
+            a = Math.floor(Math.random() * (max - 1)) + 1;
+            b = Math.floor(Math.random() * a) + 1;
+            if (tries > 100) break; 
+        } while ((a % 10) < (b % 10) || b === 0 || a === b);
         return [a, b];
     }
 
-    // 混合运算：80% 占比 且 避免 +0/-0
     function getMixExpr(max) {
-        const [a, b] = getAdd(max - 5);
-        const r1 = a + b;
-        if (Math.random() > 0.5) {
-            // 连加：避免 +0
-            let c = Math.floor(Math.random() * (max - r1 - 1)) + 1;
-            while((r1 % 10) + (c % 10) >= 10) c = Math.floor(Math.random() * 5) + 1;
-            return `${a} + ${b} + ${c} =`;
-        } else {
-            // 加减混合：避免 -0
-            let c = Math.floor(Math.random() * (r1 - 1)) + 1; 
-            while((r1 % 10) < (c % 10)) c = Math.floor(Math.random() * (r1 - 1)) + 1;
-            return `${a} + ${b} - ${c} =`;
+        let tries = 0;
+        while (tries < 100) {
+            tries++;
+            const [a, b] = getAdd(max - 2); 
+            const r1 = a + b;
+            if (Math.random() > 0.5) {
+                // 连加
+                let c = Math.floor(Math.random() * (max - r1)) + 1;
+                if ((r1 % 10) + (c % 10) < 10 && c > 0 && r1 + c <= max) {
+                    return `${a} + ${b} + ${c} =`;
+                }
+            } else {
+                // 加减混合
+                let c = Math.floor(Math.random() * r1) + 1;
+                if ((r1 % 10) >= (c % 10) && c > 0 && r1 - c > 0) {
+                    return `${a} + ${b} - ${c} =`;
+                }
+            }
         }
+        return "1 + 2 + 3 ="; // 保底题目
     }
 
     function generate() {
@@ -178,25 +187,32 @@
 
     function showQuizPage() {
         const list = document.getElementById('quiz-list');
-        list.innerHTML = "";
-        document.getElementById('quiz-title-text').innerText = `${currentLimit}以内 综合练习(纯非零)`;
+        list.innerHTML = "正在努力生成题目..."; // 状态提示
         
-        for (let i = 0; i < 100; i++) {
-            const div = document.createElement('div');
-            div.className = 'quiz-cell';
-            const dice = Math.random();
-            if (dice < 0.8) { // 80% 混合运算
-                div.innerText = getMixExpr(currentLimit);
-            } else if (dice < 0.9) { // 10% 单加
-                const [a, b] = getAdd(currentLimit);
-                div.innerText = `${a} + ${b} =`;
-            } else { // 10% 单减
-                const [a, b] = getSub(currentLimit);
-                div.innerText = `${a} - ${b} =`;
+        // 使用 setTimeout 让出主线程，防止 UI 渲染卡死
+        setTimeout(() => {
+            list.innerHTML = "";
+            document.getElementById('quiz-title-text').innerText = `${currentLimit}以内 100题练习`;
+            
+            const fragment = document.createDocumentFragment();
+            for (let i = 0; i < 100; i++) {
+                const div = document.createElement('div');
+                div.className = 'quiz-cell';
+                const dice = Math.random();
+                if (dice < 0.8) {
+                    div.innerText = getMixExpr(currentLimit);
+                } else if (dice < 0.9) {
+                    const [a, b] = getAdd(currentLimit);
+                    div.innerText = `${a} + ${b} =`;
+                } else {
+                    const [a, b] = getSub(currentLimit);
+                    div.innerText = `${a} - ${b} =`;
+                }
+                fragment.appendChild(div);
             }
-            list.appendChild(div);
-        }
-        document.getElementById('quiz-layer').style.display = 'block';
+            list.appendChild(fragment);
+            document.getElementById('quiz-layer').style.display = 'block';
+        }, 10);
     }
 
     function hideQuizPage() {
